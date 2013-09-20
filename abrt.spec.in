@@ -765,7 +765,11 @@ killall abrt-dbus >/dev/null 2>&1 || :
 %doc README COPYING
 %if %{with systemd}
 %{_unitdir}/abrtd.service
+%if 0%{?_tmpfilesdir:1}
 %{_tmpfilesdir}/abrt.conf
+%else
+%{_exec_prefix}/lib/tmpfiles.d/abrt.conf
+%endif
 %else
 %{_initrddir}/abrtd
 %endif
