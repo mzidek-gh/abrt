@@ -90,6 +90,12 @@ PYTHON_FILES += \
     abrt-action-find-bodhi-update
 endif
 
+GENERATED_CONF_IN= ccpp_event.conf.in \
+                   koops_event.conf.in \
+                   vmcore_event.conf.in \
+                   python_event.conf.in \
+                   python3_event.conf.in
+
 EXTRA_DIST = \
     $(PYTHON_FILES) \
     collect_xsession_errors.xml.in \
@@ -109,7 +115,9 @@ EXTRA_DIST = \
     xorg-utils.h \
     abrt-journal.h \
     post_report.xml.in \
-    abrt-action-analyze-ccpp-local.in
+    abrt-action-analyze-ccpp-local.in \
+    abrt-action-analyze-vulnerability.in \
+    $(GENERATED_CONF_IN)
 
 if BUILD_ADDON_VMCORE
 bin_SCRIPTS += \
@@ -422,7 +430,13 @@ endif
 
 DEFS = -DLOCALEDIR=\"$(localedir)\" @DEFS@
 
-DISTCLEANFILES = abrt-action-analyze-ccpp-local abrt-action-analyze-core
+GENERATED_CONF=$(patsubst %.conf.in,%.conf,$(GENERATED_CONF_IN))
+
+DISTCLEANFILES = abrt-action-analyze-ccpp-local \
+                 abrt-action-perform-ccpp-analysis \
+                 abrt-action-analyze-core \
+                 abrt-action-analyze-vulnerability \
+                 $(GENERATED_CONF)
 
 abrt-action-perform-ccpp-analysis: abrt-action-perform-ccpp-analysis.in
 	sed -e s,\@libexecdir\@,$(libexecdir),g \
@@ -435,4 +449,12 @@ abrt-action-analyze-ccpp-local: abrt-action-analyze-ccpp-local.in
 abrt-action-analyze-core: abrt-action-analyze-core.in
 	sed -e s,\@localedir\@,$(localedir),g \
         -e s,\@PACKAGE\@,$(PACKAGE),g \
+        $< >$@
+
+abrt-action-analyze-vulnerability: abrt-action-analyze-vulnerability.in
+	sed -e s,\@libexecdir\@,$(libexecdir),g \
+        $< >$@
+
+%.conf: %.conf.in Makefile
+	sed -e s,\@libexecdir\@,$(libexecdir),g \
         $< >$@

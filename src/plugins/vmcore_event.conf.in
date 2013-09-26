@@ -57,7 +57,7 @@ EVENT=post_report type=vmcore
 
 # Send micro report
 EVENT=report_uReport type=vmcore
-        /usr/libexec/abrt-action-ureport
+        @libexecdir@/abrt-action-ureport
 
 EVENT=report-gui type=vmcore
     report-gtk -- "$DUMP_DIR"

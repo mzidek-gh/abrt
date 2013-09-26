@@ -30,6 +30,7 @@ src/plugins/abrt-action-analyze-oops
 src/plugins/abrt-action-analyze-python
 src/plugins/abrt-action-analyze-vmcore
 src/plugins/abrt-action-analyze-xorg
+src/plugins/abrt-action-analyze-vulnerability
 src/plugins/abrt-action-check-oops-for-hw-error
 src/plugins/abrt-action-check-oops-for-alt-component
 src/plugins/abrt-action-generate-backtrace
@@ -48,6 +49,11 @@ src/plugins/abrt-bodhi
 src/plugins/abrt-dump-journal-xorg
 src/plugins/libxorg-utils.a
 src/plugins/libabrt-journal.a
+src/plugins/ccpp_event.conf
+src/plugins/koops_event.conf
+src/plugins/python3_event.conf
+src/plugins/python_event.conf
+src/plugins/vmcore_event.conf
 src/python-problem/problem/config.py
 src/python-problem/tests/*.log
 src/python-problem/tests/*.trs
