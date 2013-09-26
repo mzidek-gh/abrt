@@ -23,6 +23,7 @@ EVENT=report_uReport type=Python3
 # update ABRT database after successful report to bugzilla
 EVENT=post_report type=Python3
         reporter-ureport -A -B
+        exit 0
 
 # Reporting of python exceptions
 EVENT=report-gui type=Python3 component!=anaconda
