@@ -70,7 +70,6 @@ enum
 static GDBusConnection *g_system_bus;
 static GtkStatusIcon *ap_status_icon;
 static GtkWidget *ap_menu;
-static char **s_dirs;
 static GList *g_deferred_crash_queue;
 static guint g_deferred_timeout;
 static int g_signal_pipe[2];
@@ -429,29 +428,6 @@ static char *build_message(problem_info_t *pi)
     return msg;
 }
 
-static GList *add_dirs_to_dirlist(GList *dirlist, const char *dirname)
-{
-    DIR *dir = opendir(dirname);
-    if (!dir)
-        return dirlist;
-
-    struct dirent *dent;
-    while ((dent = readdir(dir)) != NULL)
-    {
-        if (dot_or_dotdot(dent->d_name))
-            continue;
-        char *full_name = concat_path_file(dirname, dent->d_name);
-        struct stat statbuf;
-        if (lstat(full_name, &statbuf) == 0 && S_ISDIR(statbuf.st_mode))
-            dirlist = g_list_prepend(dirlist, full_name);
-        else
-            free(full_name);
-    }
-    closedir(dir);
-
-    return g_list_reverse(dirlist);
-}
-
 /* Compares the problem directories to list saved in
  * $XDG_CACHE_HOME/abrt/applet_dirlist and updates the applet_dirlist
  * with updated list.
@@ -461,13 +437,9 @@ static GList *add_dirs_to_dirlist(GList *dirlist, const char *dirname)
  */
 static void new_dir_exists(GList **new_dirs)
 {
-    GList *dirlist = NULL;
-    char **pp = s_dirs;
-    while (*pp)
-    {
-        dirlist = add_dirs_to_dirlist(dirlist, *pp);
-        pp++;
-    }
+    GList *dirlist = get_problems_over_dbus(/*don't authorize*/false);
+    if (dirlist == ERR_PTR)
+        return;
 
     const char *cachedir = g_get_user_cache_dir();
     char *dirlist_name = concat_path_file(cachedir, "abrt");
@@ -1659,19 +1631,6 @@ int main(int argc, char** argv)
     load_abrt_conf();
     load_event_config_data();
     load_user_settings("abrt-applet");
-
-    const char *default_dirs[] = {
-        g_settings_dump_location,
-        NULL,
-        NULL,
-    };
-    argv += optind;
-    if (!argv[0])
-    {
-        default_dirs[1] = concat_path_file(g_get_user_cache_dir(), "abrt/spool");
-        argv = (char**)default_dirs;
-    }
-    s_dirs = argv;
 
     /* Initialize our (dbus_abrt) machinery: hook _system_ dbus to glib main loop.
      * (session bus is left to be handled by libnotify, see below) */
