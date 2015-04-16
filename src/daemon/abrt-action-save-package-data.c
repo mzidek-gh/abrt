@@ -239,7 +239,11 @@ static int SavePackageDescriptionToDebugDump(const char *dump_dir_name)
 
     cmdline = dd_load_text_ext(dd, FILENAME_CMDLINE, DD_FAIL_QUIETLY_ENOENT);
     executable = dd_load_text(dd, FILENAME_EXECUTABLE);
-    rootdir = dd_load_text_ext(dd, FILENAME_ROOTDIR,
+
+    /* Do not implicitly query rpm database in process's root dir, if
+     * ExploreChroots is disabled. */
+    if (g_settings_explorechroots)
+        rootdir = dd_load_text_ext(dd, FILENAME_ROOTDIR,
                                DD_FAIL_QUIETLY_ENOENT | DD_LOAD_TEXT_RETURN_NULL_ON_FAILURE);
 
     /* Close dd while we query package database. It can take some time,
