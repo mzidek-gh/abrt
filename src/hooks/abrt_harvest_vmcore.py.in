@@ -155,11 +155,6 @@ def harvest_vmcore():
         else:
             break
 
-<<<<<<< HEAD
-    os.umask(077)
-
-=======
->>>>>>> 71360a6... vmcore: use libreport dd API in the harvestor
     # Check abrt config files for copy/move settings and
     try:
         conf = problem.load_plugin_conf_file("vmcore.conf")
