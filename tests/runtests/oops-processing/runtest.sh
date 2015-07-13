@@ -70,6 +70,9 @@ rlJournalStart
             $EXAMPLES_PATH/oops_broken_bios.test > \
             $TmpDir/oops_not_reportable_broken_bios.test
 
+        # oops_rhbz1045900.test already contains <KERNEL_VERSION>
+        cp $EXAMPLES_PATH/oops_rhbz1045900.test $TmpDir
+
         pushd $TmpDir
     rlPhaseEnd
 
