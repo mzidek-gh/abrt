@@ -7,7 +7,7 @@ abrt-action-perform-ccpp-analysis - Allows users to select acceptable way of cor
 
 SYNOPSIS
 --------
-'abrt-action-perform-ccpp-analysis' [-h] [-d PROBLEM_DIR]
+'abrt-action-perform-ccpp-analysis' [-h] [-d PROBLEM_DIR] [-a TYPE]
 
 DESCRIPTION
 -----------
@@ -32,8 +32,24 @@ OPTIONS
 -d, --problem-dir PROBLEM_DIR::
    Problem directory [Default: current directory]
 
+-a, --analysis {local,remote}::
+  Preferred analysis type. Can be overwritten by environment variables.
+  If not provided, you will be asked to choose one.
+  local - download debuginfo packages and run GDB locally
+  remote - upload core file to the retrace server
+
 -h, --help::
    Show help message
+
+
+ENVIRONMENT VARIABLES
+---------------------
+Environment variables take precedence over values provided in
+the command line arguments.
+
+ABRT_PERFORM_CCPP_ANALYSIS_TYPE::
+   Preferred analysis type. Allowed values are "local" and "remote".
+   See the '-a' option for more details.
 
 AUTHORS
 -------

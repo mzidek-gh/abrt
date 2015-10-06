@@ -8,14 +8,17 @@ import os
 from argparse import ArgumentParser
 import locale
 import gettext
-from subprocess import Popen
 
 import report
 from reportclient import (ask_yes_no_yesforever,
                           ask_yes_no_save_result,
+                          error_msg,
                           RETURN_OK,
                           RETURN_CANCEL_BY_USER,
                           RETURN_FAILURE)
+
+
+ANALYSIS_TYPES = ["local", "remote"]
 
 GETTEXT_PROGNAME = "abrt"
 
@@ -43,42 +46,77 @@ def handle_event(event_name, problem_dir):
     return ret
 
 
-def run_analyze_smart(problem_dir):
+def run_analyze_smart(problem_dir, preferred_type=None):
     """Runs analyze_RetraceServer event or analyze_LocalGB event.
 
-    At first runs analyze_RetraceServer. If user dismisses
-    analyze_RetraceServer event or if the run fails the analyze_LocalGDB event
-    will be run.
+    At first, the user is asked whether he wants to run the remote analysis and
+    if the answer is positive then the function runs the analyze_RetraceServer
+    event.
+
+    If the user does not want to run the remote analysis, the analyze_LocalGDB
+    event is run.
+
+    If the users cancels the remote analysis task or if the remote
+    analysis fails, the user is asked whether he wants to run the local
+    analysis and if the answer is positive, the analyze_LocalGDB event is run.
+
+    If preferred_type is set to 'remote', the remote analysis task is started
+    immediately without asking the user. Even in this case, if the user
+    cancels the remote analysis task or if the remote analysis fails, the
+    functions asks the user whether the user wants to run the local analysis.
+
+    If preferred_type is set to 'local', the local analysis is performed.
+
+    The user answers to the questions are stored in the user configuration
+    under keys abrt_analyze_upload_coredump and
+    abrt_analyze_smart_ask_perform_local_analysis
 
     Keyword arguments:
     problem_dir -- a path to problem directory
+    preferred_type -- either None, 'remote' or 'local'
 
     Returns True if any of the events was successfully performed; otherwise
     returns False.
 
+    Raises ValueError if value of the preferred_type argument is not of the
+    allowed values.
     """
 
-    retval = RETURN_CANCEL_BY_USER
-    allowed = ask_yes_no_save_result("abrt_analyze_upload_coredump",
-                _("Ok to upload core dump? (It may contain sensitive data). "\
-                  "If your answer is 'No', a stack trace will be generated locally. "\
-                  "(It may download a huge amount of data)."))
+    if preferred_type and not preferred_type in ANALYSIS_TYPES:
+        raise ValueError("Invalid preferred analysis type '%s'" % (preferred_type))
 
-    if allowed:
+    retval = RETURN_OK
+    # I can either initialize this variable to False or assign something useful
+    # to it.
+    run_remote = preferred_type == "remote"
+    if not preferred_type:
+        retval = RETURN_CANCEL_BY_USER
+        run_remote = ask_yes_no_save_result("abrt_analyze_upload_coredump",
+        _("Ok to upload core dump? (It may contain sensitive data). "
+          "If your answer is 'No', a stack trace will be generated locally. "
+          "(It may download a huge amount of data)."))
+
+    if run_remote:
         retval = handle_event("analyze_RetraceServer", problem_dir)
 
     # temporary helper variables for better readability
     option = "abrt_analyze_smart_ask_perform_local_analysis"
-    question = _("Do you want to generate a stack trace locally? "\
-                 "(It may download a huge amount of data but reporting "\
+    question = _("Do you want to generate a stack trace locally? "
+                 "(It may download a huge amount of data but reporting "
                  "can't continue without stack trace).")
 
-    # run local GDB if the retrace event was dismissed
-    # or if the retrace event failed and user gave us permission to run local GDB
+    # run local GDB if the retrace event was dismissed or if the retrace event
+    # failed and user gave us permission to run local GDB
     #
-    # don't change the retval to RETURN_CANCEL_BY_USER if ask_yes_no_yesforever() is False
-    # we want to catch errors produced by Retrace Server
-    if not allowed or (retval != RETURN_OK and ask_yes_no_yesforever(option, question)):
+    # don't change the retval to RETURN_CANCEL_BY_USER if
+    # ask_yes_no_yesforever() is False, we want to catch errors produced by
+    # Retrace Server
+    #
+    # run_remote == False          -> preferred_type in [None, 'local']
+    #    preferred_type is None    -> the user didn't want to user retrace srv
+    #    preferred_type == 'local' -> the user wants to use gdb
+    if not run_remote or (retval != RETURN_OK
+                          and ask_yes_no_yesforever(option, question)):
         retval = handle_event("analyze_LocalGDB", problem_dir)
 
     return retval
@@ -101,10 +139,28 @@ if __name__ == "__main__":
     gettext.bindtextdomain(GETTEXT_PROGNAME, '/usr/share/locale')
     gettext.textdomain(GETTEXT_PROGNAME)
 
-    CMDARGS = ArgumentParser(description = _('Smartly runs analyze events'))
+    CMDARGS = ArgumentParser(description=_("Smartly runs analyze events. "
+                "The type of analysis can be chosen by passing "
+                "the '-a' command line argument or by setting "
+                "the 'ABRT_PERFORM_CCPP_ANALYSIS_TYPE' environment variable. "
+                "The environment variable has higher priority."))
+
     CMDARGS.add_argument('-d', '--problem-dir', type=str,
                          default='.', help=_('Problem directory'))
 
+    CMDARGS.add_argument('-a', '--analysis', type=str,
+                         choices=ANALYSIS_TYPES,
+                         help=_('Preferred analysis type.'
+                                'Can be overwritten by environment variables.'))
+
     OPTIONS = CMDARGS.parse_args()
 
-    sys.exit(run_analyze_smart(vars(OPTIONS)['problem_dir']))
+    ABRT_ANALYSIS_TYPE = os.getenv('ABRT_PERFORM_CCPP_ANALYSIS_TYPE')
+    if ABRT_ANALYSIS_TYPE and not ABRT_ANALYSIS_TYPE in ANALYSIS_TYPES:
+        error_msg(_("Unknown analysis type: '{0}'").format(ABRT_ANALYSIS_TYPE))
+        ABRT_ANALYSIS_TYPE = None
+
+    if ABRT_ANALYSIS_TYPE is None:
+        ABRT_ANALYSIS_TYPE = OPTIONS.analysis
+
+    sys.exit(run_analyze_smart(OPTIONS.problem_dir, ABRT_ANALYSIS_TYPE))
