@@ -92,9 +92,12 @@ def run_analyze_smart(problem_dir, preferred_type=None):
     if not preferred_type:
         retval = RETURN_CANCEL_BY_USER
         run_remote = ask_yes_no_save_result("abrt_analyze_upload_coredump",
-        _("Ok to upload core dump? (It may contain sensitive data). "
-          "If your answer is 'No', a stack trace will be generated locally. "
-          "(It may download a huge amount of data)."))
+            _("Upload core dump and perform remote"
+              " retracing? (It may contain sensitive data)."
+              " If your answer is 'No', a stack trace will"
+              " be generated locally. Local retracing"
+              " requires downloading potentially large amount"
+              " of debuginfo data"))
 
     if run_remote:
         retval = handle_event("analyze_RetraceServer", problem_dir)

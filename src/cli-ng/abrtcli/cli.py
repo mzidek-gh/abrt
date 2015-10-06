@@ -228,28 +228,21 @@ def retrace(args):
     elif not isinstance(prob, problem.Ccpp):
         print(_('No retracing possible for this problem type'))
     else:
-        if not (local or remote):  # ask..
-            ret = ask_yes_no(
-                _('Upload core dump and perform remote'
-                  ' retracing? (It may contain sensitive data).'
-                  ' If your answer is \'No\', a stack trace will'
-                  ' be generated locally. Local retracing'
-                  ' requires downloading potentially large amount'
-                  ' of debuginfo data'))
-
-            if ret:
-                remote = True
-            else:
-                local = True
-
         prob.chown()
 
+        old = os.getenv('ABRT_PERFORM_CCPP_ANALYSIS_TYPE')
         if remote:
-            print(_('Remote retracing'))
-            run_event('analyze_RetraceServer', prob)
+            os.putenv('ABRT_PERFORM_CCPP_ANALYSIS_TYPE', 'remote')
+        elif local:
+            os.putenv('ABRT_PERFORM_CCPP_ANALYSIS_TYPE', 'local')
         else:
-            print(_('Local retracing'))
-            run_event('analyze_LocalGDB', prob)
+            old = None
+
+        try:
+            run_event('analyze_CCpp', prob)
+        finally:
+            if old:
+                os.putenv('ABRT_PERFORM_CCPP_ANALYSIS_TYPE', old)
 
 
 retrace.__doc__ = _('Generate backtrace from coredump')
