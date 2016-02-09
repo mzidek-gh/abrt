@@ -113,6 +113,22 @@ EOF
         rlRun "rm /var/cache/abrt-di/usr/lib/debug/usr/bin/will_segfault-gdb.py"
     rlPhaseEnd
 
+    rlPhaseStartTest "crash of a process with white space in its name"
+        EXECUTABLE="white spaced name"
+        rlRun "cp `which will_segfault` \"$EXECUTABLE\""
+
+        prepare
+        rlRun "./\"$EXECUTABLE\"" 139
+        wait_for_hooks
+        get_crash_path
+
+        rlAssertEquals "Correct cmdline" "_'./$EXECUTABLE'" "_$(cat $crash_PATH/cmdline)"
+        rlAssertEquals "Correct executable" "_$(pwd)/$EXECUTABLE" "_$(cat $crash_PATH/executable)"
+        rlAssertEquals "Correct reason" "_$EXECUTABLE killed by SIGSEGV" "_$(cat $crash_PATH/reason)"
+
+        rlRun "abrt-cli rm $crash_PATH" 0 "Remove crash directory"
+    rlPhaseEnd
+
     rlPhaseStartCleanup
         rlRun "abrt-cli rm $crash_PATH" 0 "Remove crash directory"
         rlRun "ulimit -c $old_ulimit" 0
