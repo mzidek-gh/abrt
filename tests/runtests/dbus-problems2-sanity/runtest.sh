@@ -49,8 +49,11 @@ rlJournalStart
         pushd $TmpDir
 
         useradd $TEST_USER -M -g wheel || rlDie "Cannot proceed without the user"
+        rlLog "Added user: $TEST_USER"
+
         echo "kokotice" | passwd $TEST_USER --stdin || {
             userdel -r -f $TEST_USER
+            rlLog "Removed user: $TEST_USER"
             rlDie "Failed to update password"
         }
 
@@ -78,14 +81,20 @@ rlJournalStart
             rlRun "python3 $test_fixture $TEST_USER_UID"
 
             sleep 2
-            kill $ABRT_DBUS_PID || rlLog "Failed to kill $ABRT_DBUS_PID"
+            kill $ABRT_DBUS_PID || {
+                rlLog "Failed to kill $ABRT_DBUS_PID"
+                kill -9 $ABRT_DBUS_PID
+            }
 
             DIRECTORIES=`find $ABRT_CONF_DUMP_LOCATION -mindepth 1 -maxdepth 1 -type d`
             if [ -n "$DIRECTORIES" ]; then
                 rlFail "The dump location is tainted"
-                ls -al $ABRT_CONF_DUMP_LOCATION
+                rlLog `ls -al $ABRT_CONF_DUMP_LOCATION`
+                rm -rf $ABRT_CONF_DUMP_LOCATION/*
             fi
 
+            rm -f /tmp/hugetext
+            rm -f /tmp/fake_type
             rlLog "++++ Finished: $test_fixture ++++"
         done
     rlPhaseEnd
@@ -94,6 +103,7 @@ rlJournalStart
         rlBundleLogs abrt $(ls *.log)
 
         userdel -r -f $TEST_USER
+        rlLog "Removed user: $TEST_USER"
 
         popd # TmpDir
         rm -rf $TmpDir

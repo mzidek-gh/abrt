@@ -54,6 +54,7 @@ static void abrt_p2_task_remove_temporary_entry(AbrtP2TaskNewProblem *task, GErr
         return;
 
     AbrtP2Entry *entry = abrt_p2_object_get_node(task->pv->p2tnp_obj);
+    log_debug("Removing temporary entry: %s", abrt_p2_entry_problem_id(entry));
     abrt_p2_entry_delete(entry, /* allow us to delete the temporary dir */0, error);
     abrt_p2_object_destroy(task->pv->p2tnp_obj);
     task->pv->p2tnp_obj = NULL;
@@ -144,7 +145,6 @@ static int abrt_p2_task_new_problem_notify_directory_task(AbrtP2TaskNewProblem *
 {
     AbrtP2Entry *entry = abrt_p2_object_get_node(task->pv->p2tnp_obj);
 
-    /* TODO free */
     char *message = NULL;
     const char *problem_id = abrt_p2_entry_problem_id(entry);
     int r = notify_new_path_with_reponse(problem_id, &message);

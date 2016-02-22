@@ -40,14 +40,14 @@ static void abrt_p2_task_class_init(AbrtP2TaskClass *klass)
     object_class->finalize = abrt_p2_task_finalize;
 
     s_signals[SN_STATUS_CHANGED] = g_signal_new ("status-changed",
-                             G_TYPE_FROM_CLASS (klass),
-                             G_SIGNAL_RUN_LAST,
-                             G_STRUCT_OFFSET(AbrtP2TaskClass, status_changed),
-                             /*accumulator*/NULL, /*accu_data*/NULL,
-                             g_cclosure_marshal_VOID__INT,
-                             G_TYPE_NONE,
-                             /*n_params*/1,
-                             G_TYPE_INT);
+                                                 G_TYPE_FROM_CLASS (klass),
+                                                 G_SIGNAL_RUN_LAST,
+                                                 G_STRUCT_OFFSET(AbrtP2TaskClass, status_changed),
+                                                 /*accumulator*/NULL, /*accu_data*/NULL,
+                                                 g_cclosure_marshal_VOID__INT,
+                                                 G_TYPE_NONE,
+                                                 /*n_params*/1,
+                                                 G_TYPE_INT);
 }
 
 #define ABRT_P2_TASK_ABSTRACT_FUNCTION_CALL(method, task, ...) \
@@ -255,7 +255,7 @@ void abrt_p2_task_start(AbrtP2Task *task, GVariant *options, GError **error)
         && task->pv->p2t_status != ABRT_P2_TASK_STATUS_STOPPED)
     {
         g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_FAILED,
-                "Cannot start task that is not new or stopped");
+                    "Cannot start task that is not new or stopped");
         return;
     }
 
@@ -341,8 +341,10 @@ static void abrt_p2_task_autonomous_cb(AbrtP2Task *task,
 
 void abrt_p2_task_autonomous_run(AbrtP2Task *task, GError **error)
 {
-    g_signal_connect(task, "status-changed",
-            G_CALLBACK(abrt_p2_task_autonomous_cb), NULL);
+    g_signal_connect(task,
+                     "status-changed",
+                     G_CALLBACK(abrt_p2_task_autonomous_cb),
+                     NULL);
 
     abrt_p2_task_start(task, NULL, error);
 }

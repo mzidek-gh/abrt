@@ -14,6 +14,24 @@
   You should have received a copy of the GNU General Public License along
   with this program; if not, write to the Free Software Foundation, Inc.,
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+  ------------------------------------------------------------------------------
+
+  This file declares functions for org.freedesktop.Problems2.Session interface.
+
+  Every client must have a session, therefore sessions are created
+  automatically. Every session belongs to a one D-Bus caller (client) and no
+  other D-Bus caller can access it.
+
+  Session hold status of authorization and manages client's tasks. Client's
+  session destroys client's task when client disconnects. Session should not
+  allow a client to have consume too much resources by allowing him to create
+  enormous number of tasks. D-Bus clients cannot work with task of other
+  clients.
+
+  Session have two public states and one internal state. The public states are
+  authorized or not. The internal state is 'authorization pending' - when
+  client requested to authorize the session but PolKit hasn't replied yet.
 */
 
 #ifndef ABRT_PROBLEMS2_SESSION_H
@@ -34,29 +52,45 @@ G_DECLARE_FINAL_TYPE(AbrtP2Session, abrt_p2_session, ABRT_P2, SESSION, GObject)
 AbrtP2Session *abrt_p2_session_new(char *caller, uid_t uid);
 
 uid_t abrt_p2_session_uid(AbrtP2Session *session);
+
 const char *abrt_p2_session_caller(AbrtP2Session *session);
+
 int abrt_p2_session_is_authorized(AbrtP2Session *session);
 
-gint32 abrt_p2_session_authorize(AbrtP2Session *session, GVariant *parameters);
+gint32 abrt_p2_session_authorize(AbrtP2Session *session,
+            GVariant *parameters);
+
 void abrt_p2_session_close(AbrtP2Session *session);
-int abrt_p2_session_check_sanity(AbrtP2Session *session, const char *caller, uid_t caller_uid, GError **error);
 
-const char *abrt_p2_session_locale(AbrtP2Session *session, char *locale);
-void abrt_p2_session_set_locale(AbrtP2Session *session, char *locale);
+int abrt_p2_session_check_sanity(AbrtP2Session *session,
+            const char *caller,
+            uid_t caller_uid,
+            GError **error);
 
-uint32_t abrt_p2_session_add_task(AbrtP2Session *session, AbrtP2Task *task, GError **error);
-void abrt_p2_session_remove_task(AbrtP2Session *session, AbrtP2Task *task, GError **error);
-int abrt_p2_session_owns_task(AbrtP2Session *session, AbrtP2Task *task);
+uint32_t abrt_p2_session_add_task(AbrtP2Session *session,
+            AbrtP2Task *task,
+            GError **error);
+
+void abrt_p2_session_remove_task(AbrtP2Session *session,
+            AbrtP2Task *task,
+            GError **error);
+
+int abrt_p2_session_owns_task(AbrtP2Session *session,
+            AbrtP2Task *task);
+
 GList *abrt_p2_session_tasks(AbrtP2Session *session);
+
 int abrt_p2_session_tasks_count(AbrtP2Session *session);
 
 void abrt_p2_session_clean_tasks(AbrtP2Session *session);
 
 /*
- * Class methods
+ * Shared PolKit authority with other entities.
  */
 PolkitAuthority *abrt_p2_session_class_set_polkit_authority(PolkitAuthority *pk_authority);
+
 PolkitAuthority *abrt_p2_session_class_polkit_authority(void);
+
 PolkitAuthority *abrt_p2_session_class_release_polkit_authority(void);
 
 G_END_DECLS

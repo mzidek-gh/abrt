@@ -14,6 +14,17 @@
   You should have received a copy of the GNU General Public License along
   with this program; if not, write to the Free Software Foundation, Inc.,
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+  ------------------------------------------------------------------------------
+
+  This file declares functions for org.freedesktop.Problems2 interface.
+
+  AbrtP2Service is a central point. All other components should communicate to
+  each other via AbrtP2Service as much as possible.
+
+  AbrtP2Service manages all D-Bus objects. It register new object paths in
+  D-Bus daemon. D-Bus objects are hidden behind AbrtP2Object that links D-Bus
+  path with an implementation - node (real object -> Entry, Session, Task) .
 */
 #ifndef ABRT_PROBLEMS2_SERVICE_H
 #define ABRT_PROBLEMS2_SERVICE_H
@@ -43,58 +54,81 @@ G_DECLARE_FINAL_TYPE(AbrtP2Service, abrt_p2_service, ABRT_P2, SERVICE, GObject)
 AbrtP2Service *abrt_p2_service_new(GError **error);
 
 int abrt_p2_service_register_objects(AbrtP2Service *service,
-            GDBusConnection *connection, GError **error);
+            GDBusConnection *connection,
+            GError **error);
 
 const char *abrt_p2_service_session_path(AbrtP2Service *service,
-            const char *caller, GError **error);
+            const char *caller,
+            GError **error);
 
 uid_t abrt_p2_service_caller_uid(AbrtP2Service *service,
-            const char *caller, GError **error);
+            const char *caller,
+            GError **error);
 
 uid_t abrt_p2_service_caller_real_uid(AbrtP2Service *service,
-            const char *caller, GError **error);
+            const char *caller,
+            GError **error);
 
 char *abrt_p2_service_save_problem(AbrtP2Service *service,
-            GVariant *problem_info, GUnixFDList *fd_list, uid_t caller_uid,
+            GVariant *problem_info,
+            GUnixFDList *fd_list,
+            uid_t caller_uid,
             GError **error);
 
 int abrt_p2_service_remove_problem(AbrtP2Service *service,
-            const char *entry_path, uid_t caller_uid, GError **error);
+            const char *entry_path,
+            uid_t caller_uid,
+            GError **error);
 
 GVariant *abrt_p2_service_entry_problem_data(AbrtP2Service *service,
-            const char *entry_path, uid_t caller_uid, GError **error);
+            const char *entry_path,
+            uid_t caller_uid,
+            GError **error);
 
 AbrtP2Object *abrt_p2_service_get_entry_object(AbrtP2Service *service,
-            const char *entry_path, GError **error);
+            const char *entry_path,
+            GError **error);
 
 AbrtP2Object *abrt_p2_service_get_entry_for_problem(AbrtP2Service *service,
-            const char *problem_id, GError **error);
+            const char *problem_id,
+            GError **error);
 
 struct _AbrtP2Entry;
 AbrtP2Object *abrt_p2_service_register_entry(AbrtP2Service *service,
-            struct _AbrtP2Entry *entry, GError **error);
+            struct _AbrtP2Entry *entry,
+            GError **error);
 
 void abrt_p2_service_notify_entry_object(AbrtP2Service *service,
-            AbrtP2Object *obj, GError **error);
+            AbrtP2Object *obj,
+            GError **error);
 
 int abrt_p2_service_user_can_create_new_problem(AbrtP2Service *service,
             uid_t uid);
 
-GVariant *abrt_p2_service_new_problem(AbrtP2Service *service, AbrtP2Object *session_obj,
-            GVariant *problem_info, gint32 flags, uid_t caller_uid,
-            GUnixFDList *fd_list, GError **error);
+GVariant *abrt_p2_service_new_problem(AbrtP2Service *service,
+            AbrtP2Object *session_obj,
+            GVariant *problem_info,
+            gint32 flags,
+            uid_t caller_uid,
+            GUnixFDList *fd_list,
+            GError **error);
 
 void abrt_p2_service_new_problem_async(AbrtP2Service *service,
-                   GVariant *problem_info, gint32 flags, uid_t caller_uid,
-                   GUnixFDList *fd_list,
-                   GCancellable *cancellable, GAsyncReadyCallback callback,
-                   gpointer user_data);
+            GVariant *problem_info,
+            gint32 flags,
+            uid_t caller_uid,
+            GUnixFDList *fd_list,
+            GCancellable *cancellable,
+            GAsyncReadyCallback callback,
+            gpointer user_data);
 
 GVariant *abrt_p2_service_new_problem_finish(AbrtP2Service *service,
-                   GAsyncResult *result, GError **error);
+            GAsyncResult *result,
+            GError **error);
 
 GVariant *abrt_p2_service_callers_session(AbrtP2Service *service,
-            const char *caller, GError **error);
+            const char *caller,
+            GError **error);
 
 /*
  * GetProblems
@@ -106,11 +140,16 @@ typedef enum
     ABRT_P2_SERVICE_GET_PROBLEM_FLAGS_NEW = 0x2,
 } AbrtP2ServiceGetProblemsFlags;
 
-GVariant *abrt_p2_service_get_problems(AbrtP2Service *service, uid_t caller_uid,
-            gint32 flags, GVariant *options, GError **error);
+GVariant *abrt_p2_service_get_problems(AbrtP2Service *service,
+            uid_t caller_uid,
+            gint32 flags,
+            GVariant *options,
+            GError **error);
 
 GVariant *abrt_p2_service_delete_problems(AbrtP2Service *service,
-            GVariant *entries, uid_t caller_uid, GError **error);
+            GVariant *entries,
+            uid_t caller_uid,
+            GError **error);
 
 /*
  * Configuration and limits

@@ -30,7 +30,7 @@ class TestTaskNewProblem(abrt_p2_testing.TestCase):
                        "duphash": "TASK_NEW_PROBLEM_SESSION",
                        "uuid": "TASK_NEW_PROBLEM_SESSION",
                        "executable": "/usr/bin/foo",
-                       "type": "abrt-problems2"}
+                       "type": "abrt-problems2-new-destroyed-with-session"}
 
         task_path = p2.NewProblem(description, 0x1)
 
@@ -57,7 +57,7 @@ class TestTaskNewProblem(abrt_p2_testing.TestCase):
                        "duphash": "TASK_NEW_PROBLEM_SESSION",
                        "uuid": "TASK_NEW_PROBLEM_SESSION",
                        "executable": "/usr/bin/foo",
-                       "type": "abrt-problems2"}
+                       "type": "abrt-problems2-stopped-destroyed-with-session"}
 
         # Create task, run it and stop after temporary entry is created
         task_path = p2.NewProblem(description, 0x1 | 0x2 | 0x4)
@@ -88,7 +88,7 @@ class TestTaskNewProblem(abrt_p2_testing.TestCase):
                        "duphash": "TASK_NEW_PROBLEM_SESSION",
                        "uuid": "TASK_NEW_PROBLEM_SESSION",
                        "executable": "/usr/bin/foo",
-                       "type": "abrt-problems2"}
+                       "type": "abrt-problems2-dd-with-session"}
 
         # Create task, run it
         task_path = p2.NewProblem(description, 0x1 | 0x4)
@@ -131,7 +131,7 @@ class TestTaskNewProblem(abrt_p2_testing.TestCase):
                            "uuid": "TASK_NEW_PROBLEM_SESSION",
                            "huge_file": dbus.types.UnixFd(huge_file),
                            "executable": "/usr/bin/foo",
-                           "type": "abrt-problems2"}
+                           "type": "abrt-problems2-running-destroyed-with-session"}
 
             # Create task, run it and stop after temporary entry is created
             task_path = p2.NewProblem(description, 0x1 | 0x2 | 0x4)
@@ -144,7 +144,18 @@ class TestTaskNewProblem(abrt_p2_testing.TestCase):
             task.getproperty, "status")
 
         # let abrt-dbus finish its work load
-        time.sleep(2)
+        pbus = dbus.SystemBus(private=True)
+        p2_proxy = pbus.get_object(BUS_NAME,
+                                   '/org/freedesktop/Problems2')
+        p2 = dbus.Interface(p2_proxy,
+                            dbus_interface='org.freedesktop.Problems2')
+
+        for i in range(0, 1):
+            ps = p2.GetProblems(0x2, dict())
+            print(str(ps))
+            if not ps:
+                break
+            time.sleep(1)
 
     def test_accessible_to_own_session_only(self):
         description = {"analyzer": "problems2testsuite_analyzer",
@@ -153,7 +164,7 @@ class TestTaskNewProblem(abrt_p2_testing.TestCase):
                        "duphash": "TASK_NEW_PROBLEM_SESSION",
                        "uuid": "TASK_NEW_PROBLEM_SESSION",
                        "executable": "/usr/bin/foo",
-                       "type": "abrt-problems2"}
+                       "type": "abrt-problems2-accessible-to-own-session"}
 
         # Create task, run it and stop after temporary entry is created
         root_task_path = self.root_p2.NewProblem(description, 0x1 | 0x2 | 0x4)

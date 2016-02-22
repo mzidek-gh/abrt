@@ -14,6 +14,23 @@
   You should have received a copy of the GNU General Public License along
   with this program; if not, write to the Free Software Foundation, Inc.,
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+  ------------------------------------------------------------------------------
+
+  This file declares functions for org.freedesktop.Problems2.Task interface.
+
+  Base class for tasks.
+
+  Some actions may take too much time and D-Bus connection would simple
+  timeout. Thus we need to run those action asynchronously and we have to allow
+  users/clients to manage those asynchronous runs.
+
+  This class is rather a wrapper for GTask. A task can have several states.
+  It should be possible to stop and start it again. It should also be
+  possible to terminate it.
+
+  Offspring can publish details about the task through task 'details' which is
+  a string base, key-value structure.
 */
 #ifndef ABRT_P2_TASK_H
 #define ABRT_P2_TASK_H
@@ -96,22 +113,45 @@ struct _AbrtP2Task
 
 AbrtP2TaskStatus abrt_p2_task_status(AbrtP2Task *task);
 
+/* Returns task details in form of key-value entries.
+ */
 GVariant *abrt_p2_task_details(AbrtP2Task *task);
 
 bool abrt_p2_task_is_cancelled(AbrtP2Task *start);
 
-void abrt_p2_task_add_detail(AbrtP2Task *task, const char *key, GVariant *value);
+/* Offspring can provide D-Bus client with information they need to have.
+ *
+ * For example: a path to the new problem directory of NewProblemTask
+ */
+void abrt_p2_task_add_detail(AbrtP2Task *task,
+            const char *key,
+            GVariant *value);
 
-void abrt_p2_task_set_response(AbrtP2Task *task, GVariant *response);
+/* Private function for offspring to return their results.
+ */
+void abrt_p2_task_set_response(AbrtP2Task *task,
+            GVariant *response);
 
-void abrt_p2_task_start(AbrtP2Task *start, GVariant *options, GError **error);
-
-void abrt_p2_task_cancel(AbrtP2Task *start, GError **error);
-
-void abrt_p2_task_finish(AbrtP2Task *start, GVariant **result, gint32 *code,
+void abrt_p2_task_start(AbrtP2Task *start,
+            GVariant *options,
             GError **error);
 
-void abrt_p2_task_autonomous_run(AbrtP2Task *task, GError **error);
+void abrt_p2_task_cancel(AbrtP2Task *start,
+            GError **error);
+
+/* Retrieve results of a finished task.
+ */
+void abrt_p2_task_finish(AbrtP2Task *start,
+            GVariant **result,
+            gint32 *code,
+            GError **error);
+
+/* Runs a task in non-interactive mode.
+ *
+ * For example, stopped tasks will be automatically canceled.
+ */
+void abrt_p2_task_autonomous_run(AbrtP2Task *task,
+        GError **error);
 
 G_END_DECLS
 

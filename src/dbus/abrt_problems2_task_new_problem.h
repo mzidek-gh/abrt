@@ -14,6 +14,18 @@
   You should have received a copy of the GNU General Public License along
   with this program; if not, write to the Free Software Foundation, Inc.,
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+  ------------------------------------------------------------------------------
+
+  Definition of a task for creating a new problem directory.
+
+  The task checks if user can create a new problem, then saves the problem data
+  received over D-Bus and creates a new Problems2.Entry for it. The new entry
+  will be held in NEW state until notified to *abrtd*. After that the entry is
+  either removed (e.g. the problem was a duplicate of another problem) or its
+  state is set to COMPLETE.
+
+  See abrt_problems2_task.h for more details about Problems2 Tasks.
 */
 #ifndef ABRT_P2_TASK_NEW_PROBLEM_H
 #define ABRT_P2_TASK_NEW_PROBLEM_H
@@ -38,10 +50,25 @@ typedef enum {
 } AbrtP2TaskNewProblemCodes;
 
 AbrtP2TaskNewProblem *abrt_p2_task_new_problem_new(AbrtP2Service *service,
-            GVariant *problem_info, uid_t caller_uid, GUnixFDList *fd_list);
+            GVariant *problem_info,
+            uid_t caller_uid,
+            GUnixFDList *fd_list);
 
+/* The function will run the task and handle all states it can go in.
+ *
+ * For example, the function will destroyed the task, if it is stopped because
+ * on one can resume it.
+ */
 void abrt_p2_task_new_problem_autonomous_run(AbrtP2TaskNewProblem *task);
 
+/* The functions stops the task after successfully created a new problem
+ * directory and before notifying *abrtd* for running "post-create" scripts.
+ *
+ * It is useful when you want to pass huge data over D-Bus and you cannot pass
+ * them as a file descriptor. You should be able to ask Problems2 service to
+ * create new file in the temporary problem directory and pass its file
+ * descriptor back to the caller.
+ */
 void abrt_p2_task_new_problem_wait_before_notify(AbrtP2TaskNewProblem *task,
             bool value);
 

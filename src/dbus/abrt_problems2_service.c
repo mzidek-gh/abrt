@@ -211,14 +211,18 @@ void *abrt_p2_object_get_node(AbrtP2Object *object)
 void abrt_p2_object_destroy(AbrtP2Object *object)
 {
     log_debug("Unregistering object: %s", object->p2o_path);
-    g_dbus_connection_unregister_object(abrt_p2_service_dbus(object->p2o_service), object->p2o_regid);
+
+    g_dbus_connection_unregister_object(abrt_p2_service_dbus(object->p2o_service),
+                                        object->p2o_regid);
 }
 
 static void abrt_p2_object_emit_signal(AbrtP2Object *object,
         const char *member,
         GVariant *parameters)
 {
-    GDBusMessage *message = g_dbus_message_new_signal(object->p2o_path, object->p2o_type->iface->name, member);
+    GDBusMessage *message = g_dbus_message_new_signal(object->p2o_path,
+                                                      object->p2o_type->iface->name,
+                                                      member);
     g_dbus_message_set_sender(message, ABRT_P2_BUS);
     g_dbus_message_set_body(message, parameters);
 
@@ -230,7 +234,11 @@ static void abrt_p2_object_emit_signal(AbrtP2Object *object,
     }
 
     GError *error = NULL;
-    g_dbus_connection_send_message(abrt_p2_service_dbus(object->p2o_service), message, G_DBUS_SEND_MESSAGE_FLAGS_NONE, NULL, &error);
+    g_dbus_connection_send_message(abrt_p2_service_dbus(object->p2o_service),
+                                   message,
+                                   G_DBUS_SEND_MESSAGE_FLAGS_NONE,
+                                   NULL,
+                                   &error);
     g_object_unref(message);
     if (error != NULL)
     {
@@ -257,12 +265,12 @@ static AbrtP2Object *abrt_p2_object_new(AbrtP2Service *service,
     /* Register the interface parsed from a XML file */
     log_debug("Registering PATH %s iface %s", path, type->iface->name);
     guint registration_id = g_dbus_connection_register_object(abrt_p2_service_dbus(service),
-            path,
-            type->iface,
-            type->vtable,
-            obj,
-            (GDestroyNotify)abrt_p2_object_free,
-            error);
+                                                              path,
+                                                              type->iface,
+                                                              type->vtable,
+                                                              obj,
+                                                              (GDestroyNotify)abrt_p2_object_free,
+                                                              error);
 
     if (registration_id == 0)
     {
@@ -309,7 +317,6 @@ static void session_object_dbus_method_call(GDBusConnection *connection,
         return;
     }
 
-    //GVariant *response;
     GError *error = NULL;
 
     AbrtP2Service *service = abrt_p2_object_service(user_data);
@@ -338,8 +345,9 @@ static void session_object_dbus_method_call(GDBusConnection *connection,
         if (retval < 0)
         {
             g_dbus_method_invocation_return_error(invocation,
-                            G_DBUS_ERROR, G_DBUS_ERROR_FAILED,
-                            "Failed authorize Session");
+                                                  G_DBUS_ERROR,
+                                                  G_DBUS_ERROR_FAILED,
+                                                  "Failed authorize Session");
         }
         else
         {
@@ -450,11 +458,11 @@ static AbrtP2Object *session_object_register(AbrtP2Service *service,
     AbrtP2Session *session = abrt_p2_session_new(dup_caller, caller_uid);
 
     AbrtP2Object *obj = abrt_p2_object_new(service,
-                                  &(service->pv->p2srv_p2_session_type),
-                                  path,
-                                  session,
-                                  session_object_destructor,
-                                  error);
+                                           &(service->pv->p2srv_p2_session_type),
+                                           path,
+                                           session,
+                                           session_object_destructor,
+                                           error);
 
     if (obj == NULL)
     {
@@ -513,9 +521,9 @@ const char *abrt_p2_service_session_path(AbrtP2Service *service, const char *cal
         return NULL;
 
     AbrtP2Object *obj = abrt_p2_service_get_session_for_caller(service,
-                                                                        caller,
-                                                                        caller_uid,
-                                                                        error);
+                                                               caller,
+                                                               caller_uid,
+                                                               error);
 
     return obj == NULL ? NULL : obj->p2o_path;
 }
@@ -526,7 +534,10 @@ uid_t abrt_p2_service_caller_uid(AbrtP2Service *service, const char *caller, GEr
     if (caller_uid == (uid_t)-1)
         return (uid_t)-1;
 
-    AbrtP2Object *obj = abrt_p2_service_get_session_for_caller(service, caller, caller_uid, error);
+    AbrtP2Object *obj = abrt_p2_service_get_session_for_caller(service,
+                                                               caller,
+                                                               caller_uid,
+                                                               error);
     if (obj == NULL)
         return (uid_t) -1;
 
@@ -537,7 +548,9 @@ uid_t abrt_p2_service_caller_uid(AbrtP2Service *service, const char *caller, GEr
     return caller_uid;
 }
 
-uid_t abrt_p2_service_caller_real_uid(AbrtP2Service *service, const char *caller, GError **error)
+uid_t abrt_p2_service_caller_real_uid(AbrtP2Service *service,
+            const char *caller,
+            GError **error)
 {
     guint caller_uid;
 
@@ -545,12 +558,12 @@ uid_t abrt_p2_service_caller_real_uid(AbrtP2Service *service, const char *caller
         return (uid_t) -1;
 
     GVariant *result = g_dbus_proxy_call_sync(service->pv->p2srv_proxy_dbus,
-                                     "GetConnectionUnixUser",
-                                     g_variant_new ("(s)", caller),
-                                     G_DBUS_CALL_FLAGS_NONE,
-                                     -1,
-                                     NULL,
-                                     error);
+                                              "GetConnectionUnixUser",
+                                              g_variant_new ("(s)", caller),
+                                              G_DBUS_CALL_FLAGS_NONE,
+                                              -1,
+                                              NULL,
+                                              error);
 
     if (result == NULL)
         return (uid_t) -1;
@@ -625,7 +638,6 @@ static void entry_object_read_elements_cb(GObject *source_object,
 
     GError *error = NULL;
     GVariant *response = abrt_p2_entry_read_elements_finish(entry, result, &error);
-
     if (error == NULL)
     {
         g_dbus_method_invocation_return_value_with_unix_fd_list(context->invocation,
@@ -686,9 +698,14 @@ static void entry_object_dbus_method_call(GDBusConnection *connection,
 
         GCancellable *cancellable = g_cancellable_new();
 
-        abrt_p2_entry_read_elements_async(entry, flags, context->elements,
-                   context->out_fd_list, caller_uid,
-                   cancellable, entry_object_read_elements_cb, context);
+        abrt_p2_entry_read_elements_async(entry,
+                                          flags,
+                                          context->elements,
+                                          context->out_fd_list,
+                                          caller_uid,
+                                          cancellable,
+                                          entry_object_read_elements_cb,
+                                          context);
 
         return;
     }
@@ -706,14 +723,20 @@ static void entry_object_dbus_method_call(GDBusConnection *connection,
         g_variant_get_child(parameters, 1, "i", &flags);
 
         ABRT_P2_ENTRY_SAVE_ELEMENTS_LIMITS_ON_STACK(limits,
-                    abrt_p2_service_elements_limit(service, caller_uid),
-                    abrt_p2_service_data_size_limit(service, caller_uid));
+                        abrt_p2_service_elements_limit(service, caller_uid),
+                        abrt_p2_service_data_size_limit(service, caller_uid));
 
         GCancellable *cancellable = g_cancellable_new();
 
-        abrt_p2_entry_save_elements_async(entry, flags, context->elements, fd_list,
-                    caller_uid, &limits,
-                    cancellable, entry_object_save_elements_cb, context);
+        abrt_p2_entry_save_elements_async(entry,
+                                          flags,
+                                          context->elements,
+                                          fd_list,
+                                          caller_uid,
+                                          &limits,
+                                          cancellable,
+                                          entry_object_save_elements_cb,
+                                          context);
 
         return;
     }
@@ -721,7 +744,9 @@ static void entry_object_dbus_method_call(GDBusConnection *connection,
     {
         GVariant *elements = g_variant_get_child_value(parameters, 0);
 
-        response = abrt_p2_entry_delete_elements(entry, caller_uid, elements,
+        response = abrt_p2_entry_delete_elements(entry,
+                                                 caller_uid,
+                                                 elements,
                                                  &error);
 
         g_variant_unref(elements);
@@ -729,8 +754,10 @@ static void entry_object_dbus_method_call(GDBusConnection *connection,
     else
     {
         error_msg("BUG: org.freedesktop.Problems2.Entry does not have method: %s", method_name);
-        g_dbus_method_invocation_return_error(invocation, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_METHOD,
-                "The method has to be implemented");
+        g_dbus_method_invocation_return_error(invocation,
+                                              G_DBUS_ERROR,
+                                              G_DBUS_ERROR_UNKNOWN_METHOD,
+                                              "The method has to be implemented");
     }
 
     if (error != NULL)
@@ -782,8 +809,10 @@ static GVariant *entry_object_dbus_get_property(GDBusConnection *connection,
 
     GVariant *retval;
     AbrtP2Entry *entry = abrt_p2_object_get_node(user_data);
-    struct dump_dir *dd = abrt_p2_entry_open_dump_dir(entry, caller_uid,
-                              DD_DONT_WAIT_FOR_LOCK | DD_OPEN_READONLY, error);
+    struct dump_dir *dd = abrt_p2_entry_open_dump_dir(entry,
+                                                      caller_uid,
+                                                      DD_DONT_WAIT_FOR_LOCK | DD_OPEN_READONLY,
+                                                      error);
     if (dd == NULL)
         return NULL;
 
@@ -812,7 +841,11 @@ static GVariant *entry_object_dbus_get_property(GDBusConnection *connection,
 
     if (strcmp("package", property_name) == 0)
     {
-        const char *const elements[] = { FILENAME_PACKAGE, FILENAME_PKG_EPOCH, FILENAME_PKG_NAME,  FILENAME_PKG_VERSION, FILENAME_PKG_RELEASE };
+        const char *const elements[] = { FILENAME_PACKAGE,
+                                         FILENAME_PKG_EPOCH,
+                                         FILENAME_PKG_NAME,
+                                         FILENAME_PKG_VERSION,
+                                         FILENAME_PKG_RELEASE };
 
         GVariantBuilder builder;
         g_variant_builder_init(&builder, G_VARIANT_TYPE("(sssss)"));
@@ -927,13 +960,13 @@ return_property_value:
 
 #ifdef PROBLEMS2_PROPERTY_SET
 static gboolean entry_object_dbus_set_property(GDBusConnection *connection,
-                        const gchar *caller,
-                        const gchar *object_path,
-                        const gchar *interface_name,
-                        const gchar *property_name,
-                        GVariant    *args,
-                        GError      **error,
-                        gpointer    user_data)
+                const gchar *caller,
+                const gchar *object_path,
+                const gchar *interface_name,
+                const gchar *property_name,
+                GVariant    *args,
+                GError      **error,
+                gpointer    user_data)
 {
     log_debug("Problems2.Entry set property : %s", property_name);
 
@@ -942,8 +975,10 @@ static gboolean entry_object_dbus_set_property(GDBusConnection *connection,
         return FALSE;
 
     AbrtP2Entry *entry = abrt_p2_object_get_node(user_data);
-    struct dump_dir *dd = abrt_p2_entry_open_dump_dir(entry, caller_uid,
-                                                  DD_DONT_WAIT_FOR_LOCK, error);
+    struct dump_dir *dd = abrt_p2_entry_open_dump_dir(entry,
+                                                      caller_uid,
+                                                      DD_DONT_WAIT_FOR_LOCK,
+                                                      error);
     if (entry == NULL)
         return FALSE;
 
@@ -1065,7 +1100,7 @@ static gboolean entry_object_dbus_set_property(GDBusConnection *connection,
 
     error_msg("Unknown property %s", property_name);
     g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_PROPERTY,
-            "BUG: the property setter has to be implemented");
+                "BUG: the property setter has to be implemented");
     return FALSE;
 }
 #endif/*PROBLEMS2_PROPERTY_SET*/
@@ -1084,7 +1119,8 @@ static char *entry_object_dir_name_to_path(const char *dd_dirname)
 }
 
 static AbrtP2Object *entry_object_register_dump_dir(AbrtP2Service *service,
-            const char *dd_dirname, GError **error)
+                const char *dd_dirname,
+                GError **error)
 {
     char *const dup_dirname = xstrdup(dd_dirname);
     AbrtP2Entry *entry = abrt_p2_entry_new(dup_dirname);
@@ -1100,11 +1136,11 @@ AbrtP2Object *abrt_p2_service_register_entry(AbrtP2Service *service,
     char *path = entry_object_dir_name_to_path(dd_dirname);
 
     AbrtP2Object *obj = abrt_p2_object_new(service,
-                                  &(service->pv->p2srv_p2_entry_type),
-                                  path,
-                                  entry,
-                                  entry_object_destructor,
-                                  error);
+                                           &(service->pv->p2srv_p2_entry_type),
+                                           path,
+                                           entry,
+                                           entry_object_destructor,
+                                           error);
 
     if (obj == NULL)
     {
@@ -1142,15 +1178,15 @@ struct entry_object_save_problem_args
 };
 
 static int entry_object_wrapped_abrt_p2_entry_save_elements(struct dump_dir *dd,
-        struct entry_object_save_problem_args *args)
+            struct entry_object_save_problem_args *args)
 {
     return abrt_p2_entry_save_elements_in_dump_dir(dd,
-                                       ABRT_P2_ENTRY_ALL_FATAL,
-                                       args->problem_info,
-                                       args->fd_list,
-                                       args->caller_uid,
-                                       &(args->limits),
-                                       args->error);
+                                                   ABRT_P2_ENTRY_ALL_FATAL,
+                                                   args->problem_info,
+                                                   args->fd_list,
+                                                   args->caller_uid,
+                                                   &(args->limits),
+                                                   args->error);
 }
 
 static GList *abrt_g_variant_get_dict_keys(GVariant *dict)
@@ -1181,7 +1217,9 @@ char *abrt_p2_service_save_problem( AbrtP2Service *service,
      * The problem data should be converted to some kind of interface!
      */
     char *analyzer_str = NULL;
-    GVariant *analyzer_element = g_variant_dict_lookup_value(&pd, FILENAME_ANALYZER, G_VARIANT_TYPE_STRING);
+    GVariant *analyzer_element = g_variant_dict_lookup_value(&pd,
+                                                             FILENAME_ANALYZER,
+                                                             G_VARIANT_TYPE_STRING);
     if (analyzer_element == NULL)
     {
         analyzer_str = xstrdup("libreport");
@@ -1194,7 +1232,9 @@ char *abrt_p2_service_save_problem( AbrtP2Service *service,
     }
 
     char *type_str = NULL;
-    GVariant *type_element = g_variant_dict_lookup_value(&pd, FILENAME_TYPE, G_VARIANT_TYPE_STRING);
+    GVariant *type_element = g_variant_dict_lookup_value(&pd,
+                                                         FILENAME_TYPE,
+                                                         G_VARIANT_TYPE_STRING);
     if (type_element == NULL)
     {
          type_str = xstrdup(analyzer_str);
@@ -1205,10 +1245,14 @@ char *abrt_p2_service_save_problem( AbrtP2Service *service,
          g_variant_unref(type_element);
     }
 
-    GVariant *uuid_element = g_variant_dict_lookup_value(&pd, FILENAME_UUID, G_VARIANT_TYPE_STRING);
+    GVariant *uuid_element = g_variant_dict_lookup_value(&pd,
+                                                         FILENAME_UUID,
+                                                         G_VARIANT_TYPE_STRING);
     if (uuid_element == NULL)
     {
-        GVariant *duphash_element = g_variant_dict_lookup_value(&pd, FILENAME_DUPHASH, G_VARIANT_TYPE_STRING);
+        GVariant *duphash_element = g_variant_dict_lookup_value(&pd,
+                                                                FILENAME_DUPHASH,
+                                                                G_VARIANT_TYPE_STRING);
         if (duphash_element != NULL)
         {
             g_variant_dict_insert_value(&pd, FILENAME_UUID, duphash_element);
@@ -1228,7 +1272,9 @@ char *abrt_p2_service_save_problem( AbrtP2Service *service,
             list = g_list_sort(list, (GCompareFunc)strcmp);
             for (GList *l = list; l != NULL; l = g_list_next(l))
             {
-                GVariant *element = g_variant_dict_lookup_value(&pd, (const char *)l->data, G_VARIANT_TYPE_STRING);
+                GVariant *element = g_variant_dict_lookup_value(&pd,
+                                                                (const char *)l->data,
+                                                                G_VARIANT_TYPE_STRING);
                 /* do not hash items which are binary or file descriptor */
                 if (element == NULL)
                     continue;
@@ -1251,7 +1297,9 @@ char *abrt_p2_service_save_problem( AbrtP2Service *service,
 
     /* Sanitize UID
      */
-    GVariant *uid_element =  g_variant_dict_lookup_value(&pd, FILENAME_UID, G_VARIANT_TYPE_STRING);
+    GVariant *uid_element =  g_variant_dict_lookup_value(&pd,
+                                                         FILENAME_UID,
+                                                         G_VARIANT_TYPE_STRING);
     char *uid_str = NULL;
     if (caller_uid != 0 || uid_element == NULL)
     {   /* set uid field to caller's uid if caller is not root or root doesn't pass own uid */
@@ -1430,7 +1478,11 @@ static void task_object_on_status_changed(AbrtP2Task *task, gint32 status, gpoin
     }
 
     GError *error = NULL;
-    g_dbus_connection_send_message(abrt_p2_service_dbus(object->p2o_service), message, G_DBUS_SEND_MESSAGE_FLAGS_NONE, NULL, &error);
+    g_dbus_connection_send_message(abrt_p2_service_dbus(object->p2o_service),
+                                   message,
+                                   G_DBUS_SEND_MESSAGE_FLAGS_NONE,
+                                   NULL,
+                                   &error);
     g_object_unref(message);
     if (error != NULL)
     {
@@ -1439,7 +1491,10 @@ static void task_object_on_status_changed(AbrtP2Task *task, gint32 status, gpoin
     }
 }
 
-static AbrtP2Object *task_object_register(AbrtP2Service* service, AbrtP2Object *session_obj, AbrtP2Task *task, GError **error)
+static AbrtP2Object *task_object_register(AbrtP2Service* service,
+                AbrtP2Object *session_obj,
+                AbrtP2Task *task,
+                GError **error)
 {
     AbrtP2Session *session = abrt_p2_object_get_node(session_obj);
     uint32_t regid = abrt_p2_session_add_task(session, task, error);
@@ -1450,11 +1505,11 @@ static AbrtP2Object *task_object_register(AbrtP2Service* service, AbrtP2Object *
     char *path = xasprintf("%s/Task/%u", session_path, regid);
 
     AbrtP2Object *obj = abrt_p2_object_new(service,
-                                  &(service->pv->p2srv_p2_task_type),
-                                  path,
-                                  task,
-                                  NULL,
-                                  error);
+                                           &(service->pv->p2srv_p2_task_type),
+                                           path,
+                                           task,
+                                           NULL,
+                                           error);
 
     if (obj == NULL)
     {
@@ -1497,7 +1552,9 @@ static void task_object_dbus_method_call(GDBusConnection *connection,
 
     AbrtP2Task *task = abrt_p2_object_get_node(user_data);
     AbrtP2Object *session_obj = abrt_p2_service_get_session_for_caller(service,
-                                                    caller, real_caller_uid, &error);
+                                                                       caller,
+                                                                       real_caller_uid,
+                                                                       &error);
     if (error != NULL)
     {
         g_dbus_method_invocation_return_gerror(invocation, error);
@@ -1509,8 +1566,9 @@ static void task_object_dbus_method_call(GDBusConnection *connection,
     if (abrt_p2_session_owns_task(session, task) != 0)
     {
         g_dbus_method_invocation_return_error(invocation,
-                G_DBUS_ERROR, G_DBUS_ERROR_ACCESS_DENIED,
-                "The task does not belong to your session");
+                                              G_DBUS_ERROR,
+                                              G_DBUS_ERROR_ACCESS_DENIED,
+                                              "The task does not belong to your session");
         return;
     }
 
@@ -1564,8 +1622,9 @@ static void task_object_dbus_method_call(GDBusConnection *connection,
         error_msg("BUG: org.freedesktop.Problems2.Task does not have method: %s", method_name);
 
         g_dbus_method_invocation_return_error(invocation,
-                G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_METHOD,
-                "org.freedesktop.Problems2.Task is missing the implementation of the method");
+                                              G_DBUS_ERROR,
+                                              G_DBUS_ERROR_UNKNOWN_METHOD,
+                                              "org.freedesktop.Problems2.Task is missing the implementation of the method");
         return;
     }
 
@@ -1595,7 +1654,9 @@ static GVariant *task_object_dbus_get_property(GDBusConnection *connection,
     }
 
     AbrtP2Service *service = abrt_p2_object_service(user_data);
-    uid_t real_caller_uid = abrt_p2_service_caller_real_uid(service, caller, error);
+    uid_t real_caller_uid = abrt_p2_service_caller_real_uid(service,
+                                                            caller,
+                                                            error);
     if (real_caller_uid == (uid_t) -1)
     {
         error_msg("Failed to get uid of the caller");
@@ -1604,7 +1665,9 @@ static GVariant *task_object_dbus_get_property(GDBusConnection *connection,
 
     AbrtP2Task *task = abrt_p2_object_get_node(user_data);
     AbrtP2Object *session_obj = abrt_p2_service_get_session_for_caller(service,
-                                            caller, real_caller_uid, error);
+                                                                       caller,
+                                                                       real_caller_uid,
+                                                                       error);
     if (*error != NULL)
     {
         error_msg("Failed to get session for the caller");
@@ -1615,7 +1678,7 @@ static GVariant *task_object_dbus_get_property(GDBusConnection *connection,
     if (abrt_p2_session_owns_task(session, task) != 0)
     {
         g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_ACCESS_DENIED,
-                "The task does not belong to your session");
+                    "The task does not belong to your session");
         return NULL;
     }
 
@@ -1631,9 +1694,8 @@ static GVariant *task_object_dbus_get_property(GDBusConnection *connection,
 
     error_msg("BUG: org.freedesktop.Problems2.Task does not have property: %s", property_name);
 
-    g_set_error(error,
-            G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_METHOD,
-            "org.freedesktop.Problems2.Task is missing the implementation of the property");
+    g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_METHOD,
+                "org.freedesktop.Problems2.Task is missing the implementation of the property");
 
     return NULL;
 }
@@ -1642,13 +1704,18 @@ static GVariant *task_object_dbus_get_property(GDBusConnection *connection,
 /*
  * /org/freedesktop/Problems2
  */
-GVariant *abrt_p2_service_new_problem(AbrtP2Service *service, AbrtP2Object *session_obj,
-                   GVariant *problem_info, gint32 flags, uid_t caller_uid,
-                   GUnixFDList *fd_list, GError **error)
+GVariant *abrt_p2_service_new_problem(AbrtP2Service *service,
+                AbrtP2Object *session_obj,
+                GVariant *problem_info,
+                gint32 flags,
+                uid_t caller_uid,
+                GUnixFDList *fd_list,
+                GError **error)
 {
     AbrtP2TaskNewProblem *p2t_np = abrt_p2_task_new_problem_new(service,
-                                                    problem_info, caller_uid,
-                                                    fd_list ? g_object_ref(fd_list) : NULL);
+                                                                problem_info,
+                                                                caller_uid,
+                                                                fd_list ? g_object_ref(fd_list) : NULL);
 
     if (!(flags & 0x1))
     {
@@ -1683,8 +1750,9 @@ GVariant *abrt_p2_service_new_problem(AbrtP2Service *service, AbrtP2Object *sess
 /**
  * Converts caller to the path of session object
  */
-GVariant *abrt_p2_service_callers_session(AbrtP2Service *service, const char *caller,
-            GError **error)
+GVariant *abrt_p2_service_callers_session(AbrtP2Service *service,
+                const char *caller,
+                GError **error)
 {
     const char *session_path = abrt_p2_service_session_path(service, caller, error);
 
@@ -1694,8 +1762,11 @@ GVariant *abrt_p2_service_callers_session(AbrtP2Service *service, const char *ca
     return g_variant_new("(o)", session_path);
 }
 
-GVariant *abrt_p2_service_get_problems(AbrtP2Service *service, uid_t caller_uid,
-            gint32 flags, GVariant *options, GError **error)
+GVariant *abrt_p2_service_get_problems(AbrtP2Service *service,
+                uid_t caller_uid,
+                gint32 flags,
+                GVariant *options,
+                GError **error)
 {
     GVariantBuilder builder;
     g_variant_builder_init(&builder, G_VARIANT_TYPE("ao"));
@@ -1703,6 +1774,7 @@ GVariant *abrt_p2_service_get_problems(AbrtP2Service *service, uid_t caller_uid,
     GHashTableIter iter;
     g_hash_table_iter_init(&iter, service->pv->p2srv_p2_entry_type.objects);
 
+    log_debug("Going through entries");
     const char *entry_path;
     AbrtP2Object *entry_obj;
     while(g_hash_table_iter_next(&iter, (gpointer)&entry_path, (gpointer)&entry_obj))
@@ -1712,6 +1784,7 @@ GVariant *abrt_p2_service_get_problems(AbrtP2Service *service, uid_t caller_uid,
         AbrtP2Entry *entry = abrt_p2_object_get_node(entry_obj);
         int state = abrt_p2_entry_state(entry);
 
+        log_debug("Entry: %s", entry_path);
         if (state == ABRT_P2_ENTRY_STATE_DELETED)
         {
             continue;
@@ -1800,7 +1873,9 @@ static void p2_object_dbus_method_call(GDBusConnection *connection,
     if (strcmp("NewProblem", method_name) == 0)
     {
         AbrtP2Object *session_obj = abrt_p2_service_get_session_for_caller(service,
-                                                caller, caller_uid, &error);
+                                                                           caller,
+                                                                           caller_uid,
+                                                                           &error);
         if (session_obj != NULL)
         {
             GDBusMessage *msg = g_dbus_method_invocation_get_message(invocation);
@@ -1810,8 +1885,13 @@ static void p2_object_dbus_method_call(GDBusConnection *connection,
             gint32 flags;
             g_variant_get_child(parameters, 1, "i", &flags);
 
-            response = abrt_p2_service_new_problem(service, session_obj, data, flags,
-                    caller_uid, fd_list, &error);
+            response = abrt_p2_service_new_problem(service,
+                                                   session_obj,
+                                                   data,
+                                                   flags,
+                                                   caller_uid,
+                                                   fd_list,
+                                                   &error);
         }
     }
     else if (strcmp("GetSession", method_name) == 0)
@@ -1838,7 +1918,10 @@ static void p2_object_dbus_method_call(GDBusConnection *connection,
         const char *entry_path;
         g_variant_get(parameters, "(&o)", &entry_path);
 
-        response = abrt_p2_service_entry_problem_data(service, entry_path, caller_uid, &error);
+        response = abrt_p2_service_entry_problem_data(service,
+                                                      entry_path,
+                                                      caller_uid,
+                                                      &error);
     }
     else if (strcmp("DeleteProblems", method_name) == 0)
     {
@@ -1849,8 +1932,10 @@ static void p2_object_dbus_method_call(GDBusConnection *connection,
     else
     {
         error_msg("BUG: org.freedesktop.Problems2 does not have method: %s", method_name);
-        g_dbus_method_invocation_return_error(invocation, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_METHOD,
-                "The method has to be implemented");
+        g_dbus_method_invocation_return_error(invocation,
+                                              G_DBUS_ERROR,
+                                              G_DBUS_ERROR_UNKNOWN_METHOD,
+                                              "The method has to be implemented");
         return;
     }
 
@@ -1910,8 +1995,7 @@ static int abrt_p2_service_private_init(AbrtP2ServicePrivate *pv, GError **unuse
 {
     int r = 0;
     {
-        static GDBusInterfaceVTable p2_object_vtable =
-        {
+        static GDBusInterfaceVTable p2_object_vtable = {
             .method_call = p2_object_dbus_method_call,
             .get_property = NULL,
             .set_property = NULL,
@@ -1928,8 +2012,7 @@ static int abrt_p2_service_private_init(AbrtP2ServicePrivate *pv, GError **unuse
     }
 
     {
-        static GDBusInterfaceVTable session_object_vtable =
-        {
+        static GDBusInterfaceVTable session_object_vtable = {
             .method_call = session_object_dbus_method_call,
             .get_property = session_object_dbus_get_property,
             .set_property = NULL,
@@ -1946,8 +2029,7 @@ static int abrt_p2_service_private_init(AbrtP2ServicePrivate *pv, GError **unuse
     }
 
     {
-        static GDBusInterfaceVTable entry_object_vtable =
-        {
+        static GDBusInterfaceVTable entry_object_vtable = {
             .method_call = entry_object_dbus_method_call,
             .get_property = entry_object_dbus_get_property,
             .set_property = NULL,
@@ -1964,8 +2046,7 @@ static int abrt_p2_service_private_init(AbrtP2ServicePrivate *pv, GError **unuse
     }
 
     {
-        static GDBusInterfaceVTable task_object_vtable =
-        {
+        static GDBusInterfaceVTable task_object_vtable = {
             .method_call = task_object_dbus_method_call,
             .get_property = task_object_dbus_get_property,
             .set_property = NULL,
@@ -2051,7 +2132,7 @@ static struct user_info *abrt_p2_service_user_lookup(AbrtP2Service *service, uid
 static struct user_info *abrt_p2_service_user_insert(AbrtP2Service *service, uid_t uid, struct user_info *user)
 {
     g_hash_table_insert(service->pv->p2srv_connected_users,
-                               (gpointer)(gint64)uid, user);
+                        (gpointer)(gint64)uid, user);
     return user;
 }
 
@@ -2075,7 +2156,9 @@ struct bridge_call_args
 static int bridge_register_dump_dir_entry_node(struct dump_dir *dd, void *call_args)
 {
     struct bridge_call_args *args = call_args;
-    return NULL == entry_object_register_dump_dir(args->service, dd->dd_dirname, args->error);
+    return NULL == entry_object_register_dump_dir(args->service,
+                                                  dd->dd_dirname,
+                                                  args->error);
 }
 
 static void on_g_signal(GDBusProxy *proxy,
@@ -2140,18 +2223,18 @@ int abrt_p2_service_register_objects(AbrtP2Service *service, GDBusConnection *co
     if (service->pv->p2srv_dbus != NULL)
     {
         g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_FAILED,
-                "Problems2 service objects are already registered");
+                    "Problems2 service objects are already registered");
         return -EALREADY;
     }
 
     service->pv->p2srv_dbus = connection;
 
     service->pv->p2srv_p2_object = abrt_p2_object_new(service,
-                                  &(service->pv->p2srv_p2_type),
-                                  (char *)ABRT_P2_PATH,
-                                  /*node*/NULL,
-                                  /*node destructor*/NULL,
-                                  error);
+                                                      &(service->pv->p2srv_p2_type),
+                                                      (char *)ABRT_P2_PATH,
+                                                      /*node*/NULL,
+                                                      /*node destructor*/NULL,
+                                                      error);
 
     if (service->pv->p2srv_p2_object == 0)
     {
@@ -2173,13 +2256,13 @@ int abrt_p2_service_register_objects(AbrtP2Service *service, GDBusConnection *co
 
     GError *local_error = NULL;
     service->pv->p2srv_proxy_dbus = g_dbus_proxy_new_sync(connection,
-                                     G_DBUS_PROXY_FLAGS_NONE,
-                                     NULL,
-                                     "org.freedesktop.DBus",
-                                     "/org/freedesktop/DBus",
-                                     "org.freedesktop.DBus",
-                                     NULL,
-                                     &local_error);
+                                                          G_DBUS_PROXY_FLAGS_NONE,
+                                                          NULL,
+                                                          "org.freedesktop.DBus",
+                                                          "/org/freedesktop/DBus",
+                                                          "org.freedesktop.DBus",
+                                                          NULL,
+                                                          &local_error);
 
 
     if (local_error == NULL)

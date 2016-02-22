@@ -83,9 +83,9 @@ const char *abrt_p2_entry_problem_id(AbrtP2Entry *entry)
 
 int abrt_p2_entry_accessible_by_uid(AbrtP2Entry *entry, uid_t uid, struct dump_dir **dd)
 {
-    struct dump_dir *tmp = dd_opendir(entry->pv->p2e_dirname,   DD_OPEN_FD_ONLY
-                                                          | DD_FAIL_QUIETLY_ENOENT
-                                                          | DD_FAIL_QUIETLY_EACCES);
+    struct dump_dir *tmp = dd_opendir(entry->pv->p2e_dirname, DD_OPEN_FD_ONLY
+                                                              | DD_FAIL_QUIETLY_ENOENT
+                                                              | DD_FAIL_QUIETLY_EACCES);
     if (tmp == NULL)
     {
         VERB2 perror_msg("can't open problem directory '%s'", entry->pv->p2e_dirname);
@@ -117,7 +117,7 @@ int abrt_p2_entry_delete(AbrtP2Entry *entry, uid_t caller_uid, GError **error)
     if (dd == NULL)
     {
         g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_FAILED,
-                "Cannot lock the problem. Check system logs.");
+                    "Cannot lock the problem. Check system logs.");
         return -EWOULDBLOCK;
     }
 
@@ -127,7 +127,8 @@ int abrt_p2_entry_delete(AbrtP2Entry *entry, uid_t caller_uid, GError **error)
     {
         dd_close(dd);
         g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_FAILED,
-                "Failed to remove problem data. Check system logs.");
+                    "Failed to remove problem data. Check system logs.");
+        return ret;
     }
 
     abrt_p2_entry_set_state(entry, ABRT_P2_ENTRY_STATE_DELETED);
@@ -160,10 +161,10 @@ GVariant *abrt_p2_entry_problem_data(AbrtP2Entry *node, uid_t caller_uid, GError
         }
 
         g_variant_builder_add(&response_builder, "{s(its)}",
-                                                element_name,
-                                                element_info->flags,
-                                                size,
-                                                element_info->content);
+                                                 element_name,
+                                                 element_info->flags,
+                                                 size,
+                                                 element_info->content);
     }
 
     problem_data_free(pd);
@@ -173,7 +174,9 @@ GVariant *abrt_p2_entry_problem_data(AbrtP2Entry *node, uid_t caller_uid, GError
 }
 
 struct dump_dir *abrt_p2_entry_open_dump_dir(AbrtP2Entry *entry,
-              uid_t caller_uid, int dd_flags, GError **error)
+             uid_t caller_uid,
+             int dd_flags,
+             GError **error)
 {
     struct dump_dir *dd = NULL;
     if (0 != abrt_p2_entry_accessible_by_uid(entry, caller_uid, &dd))
@@ -197,20 +200,25 @@ struct dump_dir *abrt_p2_entry_open_dump_dir(AbrtP2Entry *entry,
 /**
  * Read elements
  */
-GVariant *abrt_p2_entry_read_elements(AbrtP2Entry *entry, gint32 flags,
-             GVariant *elements, GUnixFDList *fd_list, uid_t caller_uid,
+GVariant *abrt_p2_entry_read_elements(AbrtP2Entry *entry,
+             gint32 flags,
+             GVariant *elements,
+             GUnixFDList *fd_list,
+             uid_t caller_uid,
              GError **error)
 {
     if ((flags & ABRT_P2_ENTRY_READ_ALL_FD) && (flags & ABRT_P2_ENTRY_READ_ALL_NO_FD))
     {
         g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_INVALID_ARGS,
-                        "Invalid arguments 'ALL FD' ~ 'ALL NO FD'");
+                    "Invalid arguments 'ALL FD' ~ 'ALL NO FD'");
         return NULL;
     }
 
 
-    struct dump_dir *dd = abrt_p2_entry_open_dump_dir(entry, caller_uid,
-                DD_OPEN_READONLY | DD_DONT_WAIT_FOR_LOCK, error);
+    struct dump_dir *dd = abrt_p2_entry_open_dump_dir(entry,
+                                                      caller_uid,
+                                                      DD_OPEN_READONLY | DD_DONT_WAIT_FOR_LOCK,
+                                                      error);
     if (dd == NULL)
         return NULL;
 
@@ -327,7 +335,8 @@ static inline void abrt_p2_entry_read_elements_data_free(AbrtP2EntryReadElements
 }
 
 void abrt_p2_entry_read_elements_async_task(GTask *task,
-            gpointer source_object, gpointer task_data,
+            gpointer source_object,
+            gpointer task_data,
             GCancellable *cancellable)
 {
     AbrtP2Entry *entry = source_object;
@@ -343,10 +352,14 @@ void abrt_p2_entry_read_elements_async_task(GTask *task,
         g_task_return_error(task, error);
 }
 
-void abrt_p2_entry_read_elements_async(AbrtP2Entry *entry, gint32 flags,
-             GVariant *elements, GUnixFDList *fd_list, uid_t caller_uid,
-             GCancellable *cancellable, GAsyncReadyCallback callback,
-             gpointer user_data)
+void abrt_p2_entry_read_elements_async(AbrtP2Entry *entry,
+            gint32 flags,
+            GVariant *elements,
+            GUnixFDList *fd_list,
+            uid_t caller_uid,
+            GCancellable *cancellable,
+            GAsyncReadyCallback callback,
+            gpointer user_data)
 {
     AbrtP2EntryReadElementsData *data = abrt_p2_entry_read_elements_data_new();
     data->flags = flags;
@@ -358,24 +371,27 @@ void abrt_p2_entry_read_elements_async(AbrtP2Entry *entry, gint32 flags,
     g_task_set_task_data(task, data, (GDestroyNotify)abrt_p2_entry_read_elements_data_free);
     g_task_run_in_thread(task, abrt_p2_entry_read_elements_async_task);
     g_object_unref(task);
-    return;
 }
 
 GVariant *abrt_p2_entry_read_elements_finish(AbrtP2Entry *entry,
-            GAsyncResult *result, GError **error)
+           GAsyncResult *result,
+           GError **error)
 {
     g_return_val_if_fail(g_task_is_valid(result, entry), NULL);
 
     return g_task_propagate_pointer(G_TASK(result), error);
-
 }
 
 /**
  * Save elements
  */
-GVariant *abrt_p2_entry_save_elements(AbrtP2Entry *entry, gint32 flags,
-            GVariant *elements, GUnixFDList *fd_list, uid_t caller_uid,
-            AbrtP2EntrySaveElementsLimits *limits, GError **error)
+GVariant *abrt_p2_entry_save_elements(AbrtP2Entry *entry,
+            gint32 flags,
+            GVariant *elements,
+            GUnixFDList *fd_list,
+            uid_t caller_uid,
+            AbrtP2EntrySaveElementsLimits *limits,
+            GError **error)
 {
     struct dump_dir *dd = abrt_p2_entry_open_dump_dir(entry, caller_uid,
                                                 DD_DONT_WAIT_FOR_LOCK, error);
@@ -391,9 +407,13 @@ GVariant *abrt_p2_entry_save_elements(AbrtP2Entry *entry, gint32 flags,
 /**
  * Save elements in a dump directory
  */
-int abrt_p2_entry_save_elements_in_dump_dir(struct dump_dir *dd, gint32 flags,
-            GVariant *elements, GUnixFDList *fd_list, uid_t caller_uid,
-            AbrtP2EntrySaveElementsLimits *limits, GError **error)
+int abrt_p2_entry_save_elements_in_dump_dir(struct dump_dir *dd,
+            gint32 flags,
+            GVariant *elements,
+            GUnixFDList *fd_list,
+            uid_t caller_uid,
+            AbrtP2EntrySaveElementsLimits *limits,
+            GError **error)
 {
     int retval = 0;
 
@@ -407,7 +427,7 @@ int abrt_p2_entry_save_elements_in_dump_dir(struct dump_dir *dd, gint32 flags,
     {
         error_msg("Failed to get file system size of dump dir : %s", strerror(-dd_size));
         g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_IO_ERROR,
-                "Dump directory file system size");
+                    "Dump directory file system size");
         return dd_size;
     }
 
@@ -416,7 +436,7 @@ int abrt_p2_entry_save_elements_in_dump_dir(struct dump_dir *dd, gint32 flags,
     {
         error_msg("Failed to get count of dump dir elements: %s", strerror(-dd_items));
         g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_IO_ERROR,
-                "Dump directory elements count");
+                    "Dump directory elements count");
         return dd_items;
     }
 
@@ -431,7 +451,7 @@ int abrt_p2_entry_save_elements_in_dump_dir(struct dump_dir *dd, gint32 flags,
         {
             error_msg("Attempt to save prohibited data: '%s'", name);
             g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_ACCESS_DENIED,
-                    "Not allowed problem element name");
+                        "Not allowed problem element name");
             retval = -EACCES;
             goto exit_loop_on_error;
         }
@@ -439,7 +459,8 @@ int abrt_p2_entry_save_elements_in_dump_dir(struct dump_dir *dd, gint32 flags,
         {
             if (limits->elements_count != 0 && dd_items >= limits->elements_count)
             {
-                error_msg("Cannot create new element '%s': reached the limit for elements %u", name, limits->elements_count);
+                error_msg("Cannot create new element '%s': reached the limit for elements %u",
+                          name, limits->elements_count);
                 if (flags & ABRT_P2_ENTRY_ELEMENTS_COUNT_LIMIT_FATAL)
                     goto exit_loop_on_too_many_elements;
                 continue;
@@ -453,7 +474,7 @@ int abrt_p2_entry_save_elements_in_dump_dir(struct dump_dir *dd, gint32 flags,
             if (flags & ABRT_P2_ENTRY_IO_ERROR_FATAL)
             {
                 g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_IO_ERROR,
-                        "Failed to get size of underlying data");
+                            "Failed to get size of underlying data");
                 retval = r;
                 goto exit_loop_on_error;
             }
@@ -485,7 +506,7 @@ int abrt_p2_entry_save_elements_in_dump_dir(struct dump_dir *dd, gint32 flags,
                 if (size >= (1ULL << (8 * sizeof(off_t) - 1)))
                 {
                     g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_IO_ERROR,
-                            "Cannot read huge text data");
+                                "Cannot read huge text data");
                     retval = -EINVAL;
                     goto exit_loop_on_error;
                 }
@@ -542,7 +563,7 @@ int abrt_p2_entry_save_elements_in_dump_dir(struct dump_dir *dd, gint32 flags,
                 if (flags & ABRT_P2_ENTRY_IO_ERROR_FATAL)
                 {
                     g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_IO_ERROR,
-                            "Failed to get passed file descriptor");
+                                "Failed to get passed file descriptor");
                     retval = -EIO;
                     goto exit_loop_on_error;
                 }
@@ -554,6 +575,9 @@ int abrt_p2_entry_save_elements_in_dump_dir(struct dump_dir *dd, gint32 flags,
                                     ? item_stat.st_size
                                     : limits->data_size - base_size;
 
+            /* Make the file descriptor non-blocking. We will not wait for
+             * data. An attacker could use it to stop the service from
+             * function. */
             if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
             {
                 perror_msg("Failed to set file descriptor of %s non-blocking:", name);
@@ -561,7 +585,7 @@ int abrt_p2_entry_save_elements_in_dump_dir(struct dump_dir *dd, gint32 flags,
                 if (flags & ABRT_P2_ENTRY_IO_ERROR_FATAL)
                 {
                     g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_IO_ERROR,
-                            "Failed to set file file descriptor of %s non-blocking", name);
+                                "Failed to set file file descriptor of %s non-blocking", name);
                     retval = -EIO;
                     goto exit_loop_on_error;
                 }
@@ -577,7 +601,7 @@ int abrt_p2_entry_save_elements_in_dump_dir(struct dump_dir *dd, gint32 flags,
                 if (flags & ABRT_P2_ENTRY_IO_ERROR_FATAL)
                 {
                     g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_IO_ERROR,
-                            "Failed to save data of passed file descriptor");
+                                "Failed to save data of passed file descriptor");
                     retval = r;
                     goto exit_loop_on_error;
                 }
@@ -602,7 +626,7 @@ int abrt_p2_entry_save_elements_in_dump_dir(struct dump_dir *dd, gint32 flags,
             if (flags & ABRT_P2_ENTRY_IO_ERROR_FATAL)
             {
                 g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_NOT_SUPPORTED,
-                        "Not supported D-Bus type");
+                            "Not supported D-Bus type");
                 retval = -ENOTSUP;
                 goto exit_loop_on_error;
             }
@@ -613,12 +637,12 @@ int abrt_p2_entry_save_elements_in_dump_dir(struct dump_dir *dd, gint32 flags,
 
 exit_loop_on_too_big_data:
     g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_LIMITS_EXCEEDED,
-            "Problem data is too big");
+               "Problem data is too big");
     return -EFBIG;
 
 exit_loop_on_too_many_elements:
     g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_LIMITS_EXCEEDED,
-            "Too many elements");
+                "Too many elements");
     return -E2BIG;
 
 exit_loop_on_error:
@@ -652,9 +676,13 @@ static void abrt_p2_entry_save_elements_async_task(GTask *task,
     AbrtP2EntrySaveElementsData *data = task_data;
 
     GError *error = NULL;
-    GVariant *response = abrt_p2_entry_save_elements(entry, data->flags,
-            data->elements, data->fd_list, data->caller_uid, &(data->limits),
-            &error);
+    GVariant *response = abrt_p2_entry_save_elements(entry,
+                                                     data->flags,
+                                                     data->elements,
+                                                     data->fd_list,
+                                                     data->caller_uid,
+                                                     &(data->limits),
+                                                     &error);
 
     if (error == NULL)
         g_task_return_pointer(task, response, (GDestroyNotify)g_variant_unref);
@@ -662,10 +690,14 @@ static void abrt_p2_entry_save_elements_async_task(GTask *task,
         g_task_return_error(task, error);
 }
 
-void abrt_p2_entry_save_elements_async(AbrtP2Entry *entry, gint32 flags,
-            GVariant *elements, GUnixFDList *fd_list, uid_t caller_uid,
+void abrt_p2_entry_save_elements_async(AbrtP2Entry *entry,
+            gint32 flags,
+            GVariant *elements,
+            GUnixFDList *fd_list,
+            uid_t caller_uid,
             AbrtP2EntrySaveElementsLimits *limits,
-            GCancellable *cancellable, GAsyncReadyCallback callback,
+            GCancellable *cancellable,
+            GAsyncReadyCallback callback,
             gpointer user_data)
 {
     AbrtP2EntrySaveElementsData *data = abrt_p2_entry_save_elements_data_new();
@@ -694,12 +726,15 @@ GVariant *abrt_p2_entry_save_elements_finish(AbrtP2Entry *entry,
 /**
  * Delete elements
  */
-GVariant *abrt_p2_entry_delete_elements(AbrtP2Entry *entry, uid_t caller_uid,
-            GVariant *elements, GError **error)
+GVariant *abrt_p2_entry_delete_elements(AbrtP2Entry *entry,
+            uid_t caller_uid,
+            GVariant *elements,
+            GError **error)
 {
-    struct dump_dir *dd = abrt_p2_entry_open_dump_dir(entry, caller_uid,
-            DD_DONT_WAIT_FOR_LOCK, error);
-
+    struct dump_dir *dd = abrt_p2_entry_open_dump_dir(entry,
+                                                      caller_uid,
+                                                      DD_DONT_WAIT_FOR_LOCK,
+                                                      error);
     if (dd == NULL)
         return NULL;
 
@@ -735,7 +770,8 @@ uid_t abrt_p2_entry_get_owner(AbrtP2Entry *entry, GError **error)
         return -1;
     }
 
-    uid_t uid = dd_get_owner(dd);
+    const uid_t uid = dd_get_owner(dd);
     dd_close(dd);
+
     return uid;
 }

@@ -115,14 +115,14 @@ static void abrt_p2_session_class_init(AbrtP2SessionClass *klass)
     object_class->finalize = abrt_p2_session_finalize;
 
     s_signals[SN_AUTHORIZATION_CHANGED] = g_signal_new ("authorization-changed",
-                             G_TYPE_FROM_CLASS (klass),
-                             G_SIGNAL_RUN_LAST,
-                             G_STRUCT_OFFSET(struct _AbrtP2Session, authorization_changed),
-                             /*accumulator*/NULL, /*accu_data*/NULL,
-                             g_cclosure_marshal_VOID__INT,
-                             G_TYPE_NONE,
-                             /*n_params*/1,
-                             G_TYPE_INT);
+                                                        G_TYPE_FROM_CLASS (klass),
+                                                        G_SIGNAL_RUN_LAST,
+                                                        G_STRUCT_OFFSET(struct _AbrtP2Session, authorization_changed),
+                                                        /*accumulator*/NULL, /*accu_data*/NULL,
+                                                        g_cclosure_marshal_VOID__INT,
+                                                        G_TYPE_NONE,
+                                                        /*n_params*/1,
+                                                        G_TYPE_INT);
 }
 
 static void abrt_p2_session_init(AbrtP2Session *self)
@@ -232,13 +232,13 @@ static void authorization_request_initialize(AbrtP2Session *session, GVariant *p
     }
 
     polkit_authority_check_authorization(abrt_p2_session_class_polkit_authority(),
-                subject,
-                "org.freedesktop.problems.getall",
-                details,
-                POLKIT_CHECK_AUTHORIZATION_FLAGS_ALLOW_USER_INTERACTION,
-                auth_rq->cancellable,
-                check_authorization_callback,
-                auth_rq);
+                                         subject,
+                                         "org.freedesktop.problems.getall",
+                                         details,
+                                         POLKIT_CHECK_AUTHORIZATION_FLAGS_ALLOW_USER_INTERACTION,
+                                         auth_rq->cancellable,
+                                         check_authorization_callback,
+                                         auth_rq);
 
 }
 
@@ -317,9 +317,9 @@ int abrt_p2_session_is_authorized(AbrtP2Session *session)
 }
 
 int abrt_p2_session_check_sanity(AbrtP2Session *session,
-            const char *caller,
-            uid_t caller_uid,
-            GError **error)
+                const char *caller,
+                uid_t caller_uid,
+                GError **error)
 {
     if (strcmp(session->pv->p2s_caller, caller) == 0 && session->pv->p2s_uid == caller_uid)
         /* the session node is sane */
@@ -328,7 +328,7 @@ int abrt_p2_session_check_sanity(AbrtP2Session *session,
     log_warning("Problems2 Session object does not belong to UID %d", caller_uid);
 
     g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_FAILED,
-            "Your Problems2 Session is broken. Check system logs for more details.");
+                "Your Problems2 Session is broken. Check system logs for more details.");
     return -1;
 }
 
@@ -337,14 +337,14 @@ uint32_t abrt_p2_session_add_task(AbrtP2Session *session, AbrtP2Task *task, GErr
     if (session->pv->p2s_task_indexer == (UINT32_MAX - 1))
     {
         g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_FAILED,
-                "Reached the limit of task per session.");
+                    "Reached the limit of task per session.");
         return UINT32_MAX;
     }
 
     if (abrt_p2_session_owns_task(session, task) == 0)
     {
         g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_FAILED,
-                "Task is already owned by the session");
+                    "Task is already owned by the session");
 
         return UINT32_MAX;
     }
