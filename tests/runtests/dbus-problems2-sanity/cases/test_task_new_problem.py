@@ -150,12 +150,7 @@ class TestTaskNewProblem(abrt_p2_testing.TestCase):
         p2 = dbus.Interface(p2_proxy,
                             dbus_interface='org.freedesktop.Problems2')
 
-        for i in range(0, 1):
-            ps = p2.GetProblems(0x2, dict())
-            print(str(ps))
-            if not ps:
-                break
-            time.sleep(1)
+        time.sleep(10)
 
     def test_accessible_to_own_session_only(self):
         description = {"analyzer": "problems2testsuite_analyzer",

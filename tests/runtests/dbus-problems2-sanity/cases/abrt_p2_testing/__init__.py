@@ -348,7 +348,7 @@ def wait_for_task_status(test, bus, task_path, status):
     task = Problems2Task(bus, task_path)
     task.getobjectproperties().connect_to_signal("PropertiesChanged",
                                                  on_properties_changed)
-    test.wait_for_signals(["ProperiesChanged"])
+    test.wait_for_signals(["PropertiesChanged"], 30000)
     test.assertEquals(task.getproperty("status"), status)
 
     return task
