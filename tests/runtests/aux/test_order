@@ -29,6 +29,9 @@ ccpp-plugin-debug
 python-addon
 python3-addon
 
+# - containers
+docker-essentials
+
 # - tools tests
 cli-sanity
 cli-ng-sanity
