@@ -139,6 +139,13 @@ static void user_info_free(struct user_info *info)
 /*
  * AbrtP2Service GObject Type
  */
+enum {
+    SERVICE_SIGNALS_NEW_CLIENT_CONNECTED,
+    SERVICE_SIGNALS_ALL_CLIENTS_DISCONNECTED,
+    SERVICE_SIGNALS_NUM,
+};
+static guint service_signals[SERVICE_SIGNALS_NUM] = { 0 };
+
 typedef struct
 {
     GDBusConnection *p2srv_dbus;
@@ -197,10 +204,11 @@ static void abrt_p2_object_free(AbrtP2Object *obj)
     if (obj == NULL)
         return;
 
+    /* remove the destroyed object before destructing it */
+    g_hash_table_remove(obj->p2o_type->objects, obj->p2o_path);
+
     if (obj->destructor)
         obj->destructor(obj);
-
-    g_hash_table_remove(obj->p2o_type->objects, obj->p2o_path);
 
     obj->node = (void *)0xDEADBEAF;
     obj->destructor = (void *)0xDEADBEAF;
@@ -451,6 +459,15 @@ static void session_object_destructor(AbrtP2Object *obj)
     abrt_p2_session_close(session);
 
     user->sessions = g_list_remove(user->sessions, session);
+
+    const guint size = g_hash_table_size(obj->p2o_type->objects);
+    if (size == 0)
+    {
+        g_signal_emit(obj->p2o_service,
+                      service_signals[SERVICE_SIGNALS_ALL_CLIENTS_DISCONNECTED],
+                      0/*details*/);
+    }
+
     g_object_unref(session);
 }
 
@@ -504,6 +521,10 @@ static AbrtP2Object *session_object_register(AbrtP2Service *service,
         user = abrt_p2_service_user_new(service, caller_uid);
 
     user->sessions = g_list_prepend(user->sessions, session);
+
+    g_signal_emit(service,
+                  service_signals[SERVICE_SIGNALS_NEW_CLIENT_CONNECTED],
+                  0/*details*/);
 
     return obj;
 }
@@ -2236,6 +2257,30 @@ static void abrt_p2_service_class_init(AbrtP2ServiceClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS(klass);
     object_class->finalize = abrt_p2_service_finalize;
+
+    service_signals[SERVICE_SIGNALS_NEW_CLIENT_CONNECTED] =
+        g_signal_newv("new-client-connected",
+                     G_TYPE_FROM_CLASS(klass),
+                     G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+                     NULL /* closure */,
+                     NULL /* accumulator */,
+                     NULL /* accumulator data */,
+                     NULL /* C marshaller */,
+                     G_TYPE_NONE /* return_type */,
+                     0     /* n_params */,
+                     NULL  /* param_types */);
+
+    service_signals[SERVICE_SIGNALS_ALL_CLIENTS_DISCONNECTED] =
+        g_signal_newv("all-clients-disconnected",
+                     G_TYPE_FROM_CLASS(klass),
+                     G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+                     NULL /* closure */,
+                     NULL /* accumulator */,
+                     NULL /* accumulator data */,
+                     NULL /* C marshaller */,
+                     G_TYPE_NONE /* return_type */,
+                     0     /* n_params */,
+                     NULL  /* param_types */);
 }
 
 static void abrt_p2_service_init(AbrtP2Service *self)
