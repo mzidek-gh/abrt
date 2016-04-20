@@ -102,6 +102,12 @@ static AbrtP2Object *problems2_object_type_get_object(struct problems2_object_ty
     return obj;
 }
 
+static GList *problems2_object_type_get_all_objects(struct problems2_object_type *type)
+{
+    GList *objects = g_hash_table_get_values(type->objects);
+    return objects;
+}
+
 /*
  * User details
  */
@@ -227,13 +233,17 @@ void abrt_p2_object_destroy(AbrtP2Object *object)
                                         object->p2o_regid);
 }
 
-static void abrt_p2_object_emit_signal(AbrtP2Object *object,
+static void abrt_p2_object_emit_signal_with_destination(AbrtP2Object *object,
         const char *member,
-        GVariant *parameters)
+        GVariant *parameters,
+        const char *destination)
 {
     GDBusMessage *message = g_dbus_message_new_signal(object->p2o_path,
                                                       object->p2o_type->iface->name,
                                                       member);
+    if (destination != NULL)
+        g_dbus_message_set_destination(message, destination);
+
     g_dbus_message_set_sender(message, ABRT_P2_BUS);
     g_dbus_message_set_body(message, parameters);
 
@@ -256,6 +266,13 @@ static void abrt_p2_object_emit_signal(AbrtP2Object *object,
         error_msg("Failed to emit signal '%s': %s", member, error->message);
         g_free(error);
     }
+}
+
+static void abrt_p2_object_emit_signal(AbrtP2Object *object,
+        const char *member,
+        GVariant *parameters)
+{
+    abrt_p2_object_emit_signal_with_destination(object, member, parameters, NULL);
 }
 
 static AbrtP2Object *abrt_p2_object_new(AbrtP2Service *service,
@@ -539,6 +556,12 @@ const char *abrt_p2_service_session_path(AbrtP2Service *service, const char *cal
     return obj == NULL ? NULL : obj->p2o_path;
 }
 
+static uid_t abrt_p2_service_get_session_uid(AbrtP2Service *service,
+            AbrtP2Session *session)
+{
+    return abrt_p2_session_is_authorized(session) ? 0 : abrt_p2_session_uid(session);
+}
+
 uid_t abrt_p2_service_caller_uid(AbrtP2Service *service, const char *caller, GError **error)
 {
     uid_t caller_uid = abrt_p2_service_caller_real_uid(service, caller, error);
@@ -553,10 +576,7 @@ uid_t abrt_p2_service_caller_uid(AbrtP2Service *service, const char *caller, GEr
         return (uid_t) -1;
 
     AbrtP2Session *session = abrt_p2_object_get_node(obj);
-    if (abrt_p2_session_is_authorized(session))
-        return 0;
-
-    return caller_uid;
+    return abrt_p2_service_get_session_uid(service, session);
 }
 
 uid_t abrt_p2_service_caller_real_uid(AbrtP2Service *service,
@@ -593,12 +613,41 @@ void abrt_p2_service_notify_entry_object(AbrtP2Service *service,
             AbrtP2Object *obj, GError **error)
 {
     AbrtP2Entry *entry = abrt_p2_object_get_node(obj);
-    uid_t uid = abrt_p2_entry_get_owner(entry, error);
+    uid_t owner_uid = abrt_p2_entry_get_owner(entry, error);
 
-    if (uid >= 0)
+    if (owner_uid >= 0)
     {
-        GVariant *parameters = g_variant_new("(oi)", obj->p2o_path, (gint32)uid);
-        abrt_p2_object_emit_signal(service->pv->p2srv_p2_object, "Crash", parameters);
+        GList *session_objects = problems2_object_type_get_all_objects(
+                                         &service->pv->p2srv_p2_session_type);
+
+        for (GList *iter = session_objects; iter != NULL; iter = g_list_next(iter))
+        {
+            AbrtP2Session *session = abrt_p2_object_get_node(iter->data);
+            const uid_t session_uid = abrt_p2_service_get_session_uid(service,
+                                                                      session);
+
+            const char *session_bus_address = abrt_p2_session_caller(session);
+
+            if ( 0 != abrt_p2_entry_accessible_by_uid(entry, session_uid, NULL))
+            {
+                log_debug("Crash signal not sent to not-authorized session: '%s'",
+                          session_bus_address);
+                continue;
+            }
+
+            log_debug("Crash signal sent to authorized session: '%s'",
+                      session_bus_address);
+
+            GVariant *parameters = g_variant_new("(oi)",
+                                                 obj->p2o_path,
+                                                 (gint32)owner_uid);
+
+            abrt_p2_object_emit_signal_with_destination(
+                                                 service->pv->p2srv_p2_object,
+                                                 "Crash",
+                                                 parameters,
+                                                 session_bus_address);
+        }
     }
 }
 
