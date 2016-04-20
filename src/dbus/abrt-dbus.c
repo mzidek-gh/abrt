@@ -87,16 +87,26 @@ static const gchar introspection_xml[] =
 /* forward */
 static gboolean on_timeout_cb(gpointer user_data);
 
-static void reset_timeout(void)
+static void kill_timeout(void)
 {
-    if (g_timeout_source > 0)
-    {
-        log_info("Removing timeout");
-        g_source_remove(g_timeout_source);
-    }
+    if (g_timeout_source == 0)
+        return;
+
+    log_info("Removing timeout");
+    guint tm = g_timeout_source;
+    g_timeout_source = 0;
+    g_source_remove(tm);
+}
+
+static void run_timeout(void)
+{
+    if (g_timeout_source != 0)
+        return;
+
     log_info("Setting a new timeout");
     g_timeout_source = g_timeout_add_seconds(g_timeout_value, on_timeout_cb, NULL);
 }
+
 
 bool allowed_problem_dir(const char *dir_name)
 {
@@ -349,8 +359,6 @@ static void handle_method_call(GDBusConnection *connection,
                         GDBusMethodInvocation *invocation,
                         gpointer    user_data)
 {
-    reset_timeout();
-
     uid_t caller_uid;
     GVariant *response;
 
@@ -895,7 +903,7 @@ static void on_bus_acquired(GDBusConnection *connection,
                                                             handle_import_problem_signal,
                                                             user_data, NULL);
 
-        reset_timeout();
+        run_timeout();
         return;
     }
 
@@ -1035,6 +1043,9 @@ int main(int argc, char *argv[])
     AbrtP2Service *p2_service = abrt_p2_service_new(&err);
     if (p2_service == NULL)
         error_msg_and_die("Failed to initialize Problems2 service: %s", err->message);
+
+    g_signal_connect(p2_service, "new-client-connected", G_CALLBACK(kill_timeout), NULL);
+    g_signal_connect(p2_service, "all-clients-disconnected", G_CALLBACK(run_timeout), NULL);
 
     DBusConnection *con = dbus_connection_open("org.freedesktop.DBus", NULL);
 
