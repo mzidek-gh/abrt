@@ -114,6 +114,13 @@ int abrt_p2_entry_delete(AbrtP2Entry *entry, uid_t caller_uid, GError **error)
         return ret;
     }
 
+    if (entry->pv->p2e_state == ABRT_P2_ENTRY_STATE_DELETED)
+    {
+        g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_FAILED,
+                    "Problem entry is already deleted");
+        return -EINVAL;
+    }
+
     dd = dd_fdopendir(dd, DD_DONT_WAIT_FOR_LOCK);
     if (dd == NULL)
     {

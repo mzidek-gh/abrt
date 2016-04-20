@@ -1441,7 +1441,14 @@ int abrt_p2_service_remove_problem(AbrtP2Service *service,
         return -ENOENT;
     }
 
-    const int ret = abrt_p2_entry_delete(ABRT_P2_ENTRY(obj->node), caller_uid, error);
+    AbrtP2Entry *entry = ABRT_P2_ENTRY(abrt_p2_object_get_node(obj));
+    if (abrt_p2_entry_state(entry) != ABRT_P2_ENTRY_STATE_COMPLETE)
+    {
+        log_debug("Cannot remove temporary/deleted Problem Entry");
+        return -EINVAL;
+    }
+
+    const int ret = abrt_p2_entry_delete(entry, caller_uid, error);
     if (ret != 0)
     {
         log_debug("Failed to remove Entry's data directory");
@@ -1783,16 +1790,17 @@ GVariant *abrt_p2_service_new_problem(AbrtP2Service *service,
                                                                 caller_uid,
                                                                 fd_list ? g_object_ref(fd_list) : NULL);
 
+    log_debug("Created task '%p' for session '%s'", p2t_np, abrt_p2_object_path(session_obj));
     if (!(flags & 0x1))
     {
-        log_debug("Running NewProblem task in autonomous mode");
+        log_debug("Running NewProblem task '%p' in autonomous mode", p2t_np);
         abrt_p2_task_autonomous_run(ABRT_P2_TASK(p2t_np), error);
         return g_variant_new("(o)", "/");
     }
 
     if (flags & 0x2)
     {
-        log_debug("Configuring NewProblem task to stop after creating a temporary directory");
+        log_debug("Configuring NewProblem task '%p' to stop after creating a temporary directory", p2t_np);
         abrt_p2_task_new_problem_wait_before_notify(p2t_np, true);
     }
 
@@ -1806,7 +1814,7 @@ GVariant *abrt_p2_service_new_problem(AbrtP2Service *service,
 
     if (flags & 0x4)
     {
-        log_debug("NewProblem task will be automatically started");
+        log_debug("NewProblem task '%p' will be automatically started", p2t_np);
         abrt_p2_task_start(ABRT_P2_TASK(p2t_np), NULL, error);
     }
 

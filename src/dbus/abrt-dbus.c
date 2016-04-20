@@ -835,6 +835,13 @@ static void handle_import_problem_signal(GDBusConnection *connection,
         }
     }
 
+    AbrtP2Entry *entry = ABRT_P2_ENTRY(abrt_p2_object_get_node(obj));
+    if (abrt_p2_entry_state(entry) != ABRT_P2_ENTRY_STATE_COMPLETE)
+    {
+        log_debug("Not notifying temporary/deleted problem directory: %s", dir);
+        return;
+    }
+
     abrt_p2_service_notify_entry_object(service, obj, &error);
     if (error)
     {

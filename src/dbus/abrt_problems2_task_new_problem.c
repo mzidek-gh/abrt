@@ -25,7 +25,7 @@ typedef struct
     GVariant *p2tnp_problem_info;
     uid_t p2tnp_caller_uid;
     GUnixFDList *p2tnp_fd_list;
-    AbrtP2Object *p2tnp_obj;
+    AbrtP2Object *p2tnp_obj;        ///<< AbrtProblems2Entry
     bool p2tnp_wait_before_notify;
 } AbrtP2TaskNewProblemPrivate;
 
@@ -54,7 +54,7 @@ static void abrt_p2_task_remove_temporary_entry(AbrtP2TaskNewProblem *task, GErr
         return;
 
     AbrtP2Entry *entry = abrt_p2_object_get_node(task->pv->p2tnp_obj);
-    log_debug("Removing temporary entry: %s", abrt_p2_entry_problem_id(entry));
+    log_debug("Task '%p': Removing temporary entry: %s", task, abrt_p2_entry_problem_id(entry));
     abrt_p2_entry_delete(entry, /* allow us to delete the temporary dir */0, error);
     abrt_p2_object_destroy(task->pv->p2tnp_obj);
     task->pv->p2tnp_obj = NULL;
@@ -153,7 +153,7 @@ static int abrt_p2_task_new_problem_notify_directory_task(AbrtP2TaskNewProblem *
     int r = notify_new_path_with_reponse(problem_id, &message);
     if (r < 0)
     {
-        log_debug("Failed to communicate with the problems daemon");
+        log_debug("Task '%p': Failed to communicate with the problems daemon", task);
 
         GError *local_error = NULL;
         abrt_p2_entry_delete(entry, /* allow us to delete the temporary dir */0, &local_error);
@@ -173,7 +173,7 @@ static int abrt_p2_task_new_problem_notify_directory_task(AbrtP2TaskNewProblem *
     }
 
     gint32 code;
-    log_debug("New path processed: %d", r);
+    log_debug("Task '%p': New path processed: %d", task, r);
     if (r == 303)
     {
         /* 303 - the daemon found a local duplicate problem */
@@ -195,7 +195,7 @@ static int abrt_p2_task_new_problem_notify_directory_task(AbrtP2TaskNewProblem *
         *new_path = xstrdup(abrt_p2_object_path(obj));
         code = ABRT_P2_TASK_NEW_PROBLEM_DUPLICATE;
 
-        log_debug("New occurrence of '%s'", *new_path);
+        log_debug("Task '%p': New occurrence of '%s'", task, *new_path);
 
         /* TODO: what about to teach the service to understand task's signals? */
         abrt_p2_service_notify_entry_object(task->pv->p2tnp_service, obj, error);
@@ -203,7 +203,7 @@ static int abrt_p2_task_new_problem_notify_directory_task(AbrtP2TaskNewProblem *
     else if (r == 410)
     {
         /* 410 - the problem was refused by the daemon */
-        log_debug("Problem dropped");
+        log_debug("Task '%p': Problem dropped", task);
 
         abrt_p2_object_destroy(task->pv->p2tnp_obj);
         task->pv->p2tnp_obj = NULL;
@@ -213,19 +213,20 @@ static int abrt_p2_task_new_problem_notify_directory_task(AbrtP2TaskNewProblem *
     else if (r == 200)
     {
         /* 200 - the problem was accepted */
-        log_debug("New problem '%s'", *new_path);
-
         *new_path = xstrdup(abrt_p2_object_path(task->pv->p2tnp_obj));
+
         code = ABRT_P2_TASK_NEW_PROBLEM_ACCEPTED;
 
-
         abrt_p2_entry_set_state(entry, ABRT_P2_ENTRY_STATE_COMPLETE);
+
+        log_debug("Task '%p': New problem '%s'", task, *new_path);
+
         /* TODO: what about to teach the service to understand task's signals? */
         abrt_p2_service_notify_entry_object(task->pv->p2tnp_service, task->pv->p2tnp_obj, error);
     }
     else
     {
-        log_debug("Problem was invalid");
+        log_debug("Task '%p': Problem was invalid", task);
 
         abrt_p2_entry_delete(entry, /* allow us to delete the temporary dir */0, error);
         abrt_p2_object_destroy(task->pv->p2tnp_obj);
@@ -255,6 +256,7 @@ static AbrtP2TaskCode abrt_p2_task_new_problem_run(AbrtP2Task *task, GError **er
         GVariant *detail_path = g_variant_new_string(temporary_entry_path);
         abrt_p2_task_add_detail(task, "NewProblem.TemporaryEntry", detail_path);
 
+        log_debug("Created temporary entry '%s' for task '%p'", temporary_entry_path, task);
         np->pv->p2tnp_obj = obj;
 
         if (abrt_p2_task_is_cancelled(task))
@@ -263,7 +265,7 @@ static AbrtP2TaskCode abrt_p2_task_new_problem_run(AbrtP2Task *task, GError **er
         if (np->pv->p2tnp_wait_before_notify)
         {
             /* Stop the task to allow users to modify the temporary object */
-            log_debug("Stopping NewProblem task");
+            log_debug("Stopping NewProblem task '%p'", task);
             return ABRT_P2_TASK_CODE_STOP;
         }
     }
@@ -279,7 +281,7 @@ static AbrtP2TaskCode abrt_p2_task_new_problem_run(AbrtP2Task *task, GError **er
     if (new_path != NULL)
         g_variant_dict_insert(&response, "NewProblem.Entry", "s", new_path);
 
-    log_debug("NewProblem task has successfully finished");
+    log_debug("NewProblem task '%p' has successfully finished", task);
     abrt_p2_task_set_response(task, g_variant_dict_end(&response));
     return ABRT_P2_TASK_CODE_DONE + code;
 }
