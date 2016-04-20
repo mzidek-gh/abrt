@@ -8,6 +8,10 @@ noinst_PROGRAMS = \
 noinst_LIBRARIES = \
     libabrt-problems2-service.a
 
+eventsconfdir = $(EVENTS_CONF_DIR)
+dist_eventsconf_DATA = \
+    abrt_dbus_event.conf
+
 abrt_dbus_SOURCES = \
     abrt-dbus.c \
     abrt-polkit.c \

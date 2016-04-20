@@ -791,7 +791,7 @@ static void handle_method_call(GDBusConnection *connection,
     }
 }
 
-static void handle_abrtd_crash_signal(GDBusConnection *connection,
+static void handle_import_problem_signal(GDBusConnection *connection,
             const gchar     *sender_name,
             const gchar     *object_path,
             const gchar     *interface_name,
@@ -799,13 +799,8 @@ static void handle_abrtd_crash_signal(GDBusConnection *connection,
             GVariant        *parameters,
             gpointer         user_data)
 {
-    const char *package_name, *dir, *uid_str, *uuid, *duphash;
-    g_variant_get (parameters, "(&s&s&s&s&s)",
-                   &package_name,
-                   &dir,
-                   &uid_str,
-                   &uuid,
-                   &duphash);
+    const char *dir;
+    g_variant_get (parameters, "(&s)", &dir);
 
     log_debug("Crash signal from abrtd: '%s'", dir);
     AbrtP2Service *service = ABRT_P2_SERVICE(user_data);
@@ -885,12 +880,12 @@ static void on_bus_acquired(GDBusConnection *connection,
     {
         g_signal_crash = g_dbus_connection_signal_subscribe(connection,
                                                             NULL,
-                                                            ABRT_DBUS_NAME,
-                                                            "Crash",
-                                                            ABRT_DBUS_OBJECT,
+                                                            "org.freedesktop.Problems2",
+                                                            "ImportProblem",
+                                                            "/org/freedesktop/Problems2",
                                                             NULL,
                                                             G_DBUS_SIGNAL_FLAGS_NONE,
-                                                            handle_abrtd_crash_signal,
+                                                            handle_import_problem_signal,
                                                             user_data, NULL);
 
         reset_timeout();
