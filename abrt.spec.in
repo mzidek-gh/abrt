@@ -422,6 +422,32 @@ Provides: bug-buddy
 Virtual package to install all necessary packages for usage from desktop
 environment.
 
+%package cockpit
+Summary: Virtual package to make easy default installation for Cockpit managed systems
+Group: User Interface/Desktops
+# If user just wants "typical Cockpit installation".
+# Installing abrt-cockpit should result in the abrt which works without
+# any tweaking in abrt.conf (IOW: all plugins mentioned there must be installed)
+Requires: %{name} = %{version}-%{release}
+Requires: %{name}-dbus = %{version}-%{release}
+Requires: abrt-addon-kerneloops
+Requires: abrt-addon-pstoreoops
+%if %{?have_kexec_tools} == 1
+Requires: abrt-addon-vmcore
+%endif
+Requires: abrt-addon-ccpp
+Requires: abrt-addon-python3
+Requires: abrt-addon-xorg
+# Default config of addon-ccpp requires gdb
+Requires: gdb >= 7.8.1-31
+Requires: libreport-cockpit >= %{libreport_ver}
+#Recommends: abrt-java-connector
+#Recommends: rubygem-abrt
+
+%description cockpit
+Virtual package to install all necessary packages for usage from Cockpit managed
+systems.
+
 %if %{with atomic}
 %package atomic
 Summary: Package to make easy default installation on Atomic hosts.
@@ -1054,6 +1080,9 @@ killall abrt-dbus >/dev/null 2>&1 || :
 %{_mandir}/man1/abrt.1.gz
 
 %files desktop
+%defattr(-,root,root,-)
+
+%files cockpit
 %defattr(-,root,root,-)
 
 %if %{with atomic}
