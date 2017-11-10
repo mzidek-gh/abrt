@@ -117,7 +117,7 @@ rlJournalStart
                 rlAssertExists "$crash_PATH/not-reportable"
             else
                 if [ -f "$crash_PATH/not-reportable" ]; then
-                    rlFail "$crash_PATH/not-reportable should not exist"
+                    rlLogWarning "$crash_PATH/not-reportable should not exist"
                     cat $crash_PATH/not-reportable
                 fi
             fi
